@@ -104,6 +104,17 @@ Lexer* tokenize(std::string *strsrc){
 
     while (!src->islast()){
         char c = src->consume();
+
+        // Comment checking (comment sequence: /*())
+        if (c == '/' && src->lookahead(1) == '*'){
+            src->consume(); // consumes *
+            char termination = '/n';
+            if (src->lookahead(1) == '('){termination = ')';};
+
+            while(c != termination){
+                src->consume();
+            };
+        };
         
         // Spaces always skipped
         if (isspace(c)){continue;};
