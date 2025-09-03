@@ -113,7 +113,7 @@ Lexer* tokenize(std::string *strsrc){
 
             do{
                 c = src->consume();
-            } while(c != termination && !src->islast());
+            } while(c != termination || src->index >= src->size);
         };
         
         // Spaces always skipped
