@@ -6,73 +6,75 @@
 #include <unordered_map>
 #include "lexer.h"
 
-Code match_punctuation(char a, char b, Lexer* lex){
+std::pair<Code, std::string> match_punctuation(char a, char b, Source* src){
+    std::string lexeme(1, a);
 
-    #define inc lex->skip();
+    #define inc { src->skip(); lexeme.push_back(b); }
+    #define returnl(c) return std::make_pair(c, lexeme)
 
     switch(a){
-        case '(': return Code::_oparan;
-        case ')': return Code::_cparan;
-        case '[': return Code::_obracket;
-        case ']': return Code::_cbracket;
-        case '{': return Code::_obrace;
-        case '}': return Code::_cbrace;
+        case '(': returnl(Code::_oparan);
+        case ')': returnl(Code::_cparan);
+        case '[': returnl(Code::_obracket);
+        case ']': returnl(Code::_cbracket);
+        case '{': returnl(Code::_obrace);
+        case '}': returnl(Code::_cbrace);
 
         case '?': switch(b){
-            case '?': inc; return Code::_qwe2;
-            default:  return Code::_qwe;
+            case '?': inc; returnl(Code::_qwe2);
+            default: returnl(Code::_qwe);
         };
         case '|': switch(b){
-            case '|': inc; return Code::_pipe2;
-            default:  return Code::_pipe;
+            case '|': inc; returnl(Code::_pipe2);
+            default: returnl(Code::_pipe);
         };
         case '&': switch(b){
-          case '&': inc; return Code::_and2;
-          default:  return Code::_and;  
+            case '&': inc; returnl(Code::_and2);
+            default: returnl(Code::_and);  
         };
         case '^': switch(b){
-            case '^': inc; return Code::_hat2;
-            default:  return Code::_hat;
+            case '^': inc; returnl(Code::_hat2);
+            default: returnl(Code::_hat);
         };
         case '=': switch(b){
-            case '=': inc; return Code::_eqeq;
-            default:  return Code::_eq;
+            case '=': inc; returnl(Code::_eqeq);
+            default: returnl(Code::_eq);
         };
         case '>': switch(b){
-            case '>': inc; return Code::_gt2;
-            case '=': inc; return Code::_gteq;
-            default:  return Code::_gt;
+            case '>': inc; returnl(Code::_gt2);
+            case '=': inc; returnl(Code::_gteq);
+            default: returnl(Code::_gt);
         };
         case '<': switch(b){
-            case '<': inc; return Code::_lt2;
-            case '=': inc; return Code::_lteq;
-            default:  return Code::_lt;
+            case '<': inc; returnl(Code::_lt2);
+            case '=': inc; returnl(Code::_lteq);
+            default: returnl(Code::_lt);
         };
         case '!': switch(b){
-            case '=': inc; return Code::_neq;
-            case '!': inc; return Code::_exc2;
-            default:  return Code::_exc;
+            case '=': inc; returnl(Code::_neq);
+            case '!': inc; returnl(Code::_exc2);
+            default: returnl(Code::_exc);
         };
 
-        case ':': return Code::_colon;
-        case ';': return Code::_semi;
-        case '.': return Code::_dot;
-        case ',': return Code::_comma;
-        case '#': return Code::_hash;
-        case '@': return Code::_at;
+        case ':': returnl(Code::_colon);
+        case ';': returnl(Code::_semi);
+        case '.': returnl(Code::_dot);
+        case ',': returnl(Code::_comma);
+        case '#': returnl(Code::_hash);
+        case '@': returnl(Code::_at);
 
-        case '+': return Code::_plus;
-        case '-': return Code::_minus;
-        case '/': return Code::_fslash;
-        case '%': return Code::_percent;
+        case '+': returnl(Code::_plus);
+        case '-': returnl(Code::_minus);
+        case '/': returnl(Code::_fslash);
+        case '%': returnl(Code::_percent);
 
         case '*': switch(b){
-            case '*': inc; return Code::_star2;
-            default:  return Code::_star;
+            case '*': inc; returnl(Code::_star2);
+            default: returnl(Code::_star);
         };
     };
-    return Code::_unknown;
-};
+    return std::make_pair(Code::_unknown, lexeme);
+}
 
 char match_escapechar(char esccode){
     switch(esccode){
@@ -96,94 +98,56 @@ std::unordered_map<std::string, Code> keyword_map {
     {"func", Code::_func}
 };
 
-Lexer* tokenize(std::string *src){
-    Lexer *lex = Lexer::create(src);
-    Token *tok = new Token{Code::_eof};
+Lexer* tokenize(std::string *strsrc){
+    Source *src = Source::create(strsrc);
+    Lexer *lex = new Lexer();
 
-    int line = 1; int col = 0;
-
-    char c = lex->nextchar();
-    do{
-        switch(c){
-            case '\n':line++;col=1;break;
-            default:col++;
-        };
+    while (!src->islast()){
+        char c = src->consume();
         
-        int i = lex->src_pos;
-        Code punct = match_punctuation(c, lex->charahead(1), lex);
-        if (punct != Code::_eof){ // Punctuation Match
-            tok->code = punct;
-            tok->lexeme = std::string(1, c);
+        // Spaces always skipped
+        if (isspace(c)){continue;};
 
-            if (i != lex->src_pos){
-                tok->lexeme.push_back(lex->curchar());
-            };
-
-            tok = lex->emit(tok);
+        // Punctuation match check
+        int line = src->line; int col = src->col;
+        auto [puncmatch, punclexeme] = match_punctuation(c, src->lookahead(), src);
+        if (puncmatch != Code::_unknown){
+            lex->emit(new Token{puncmatch, 0, 0, col, line, punclexeme});
             continue;
-        };
-        
-        // String literals
-        if (c == '\''){
-            tok->code = Code::_litstr;
-            char c = lex->nextchar();
-            col++;
-            do{
-                if (c == '\''){
-                    break;
-                } else if(c == '\\'){
-                    tok->lexeme.push_back(match_escapechar(lex->charahead()));
-                    if (lex->charahead() == 'n'){
-                        line++;
-                    };
-                    lex->skip();col++;
-                } else {
-                    tok->lexeme.push_back(c);
-                }
-                c = lex->nextchar();col++;
-            } while (!lex->islast() && (c != '\''));
-            if (lex->islast() && (c!='\'')){
-                throw std::runtime_error("Unterminated string literal.");
-            };
-
-            tok->val = tok->lexeme;
-            tok = lex->emit(tok); continue;
         };
 
         // Number literals
-        if (std::isdigit(c)){
-            tok->code = Code::_litnum;
-            bool dot = false;
+        if (isdigit(c)){
+            auto t = new Token{Code::_litnum, 0, 0, col, line, ""};
+            int hasdot = false;
+            int rollback = 0;
             do{
-                dot = dot || c == '.';
-                tok->lexeme.push_back(c);
-                c = lex->nextchar();col++;
-            } while (!lex->islast() && !isspace(c) && !(dot && c == '.'));
-            tok->val = std::stof(tok->lexeme);
-            tok = lex->emit(tok); continue;
+                c = src->peek();
+                if (isdigit(c)){
+                    t->lexeme.push_back(c);
+                }
+                else if (c == '.'){
+                    if (hasdot){
+                        rollback = 1;
+                    } else {
+                        hasdot = true;
+                        t->lexeme.push_back(c);
+                    };
+                }
+                else {
+                    rollback = 1;
+                };
+
+                if (rollback>0){break;};
+                src->next();
+                if (src->islast()){break;};
+            } while (!isspace(c));
+            t->val = std::stof(t->lexeme);
+            lex->emit(t);
+            src->move(-rollback);
         };
 
-        // Identifiers
-        if (std::isalpha(c) || c == '_'){
-            tok->code = Code::_ident;
-            do{
-                tok->lexeme.push_back(c);
-                c = lex->nextchar();col++;
-            } while (!lex->islast() && !isspace(c) && (isalnum(c) || c == '_'));
-
-            if(keyword_map.count(tok->lexeme) != 0){
-                // Is a keyword
-                tok->code = keyword_map[tok->lexeme];
-            } else {
-                // Regular identifier
-                tok->val = tok->lexeme;
-            };
-
-            tok = lex->emit(tok); continue;
-        };
-
-        lex->nextchar();
-    } while (!lex->islast());
+    };
     
     return lex;
 };

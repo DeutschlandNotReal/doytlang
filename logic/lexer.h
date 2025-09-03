@@ -11,6 +11,7 @@ enum class Code {
     _litstr,
     _litnum,
     _ident,
+    _nulltok, // Token doesn't actually exist
 
     // Punctuation
     _star,       // *
@@ -76,50 +77,122 @@ struct Token {
     int line;
 
     std::string lexeme;
+
+    void append(char c){
+        lexeme.push_back(c);
+    };
+
+    static Token* create(int col, int line){
+        auto t = new Token();
+        t->col = col;
+        t->line = line;
+        return t;
+    };
+
+    static Token* eof(int col, int line){
+        auto t = new Token();
+        t->code = Code::_eof;
+        t->line = line;
+        t->col = col;
+        return t;
+    };
+
+    static Token* null;
+};
+
+struct Source {
+    std::string* src;
+    int index;
+    int size;
+    
+    int line;
+    int col;
+
+    private:
+        int readuntil;
+        void checkchar(char c){
+            if (index < readuntil){return;};
+            readuntil = index;
+            switch(c){
+                case '\n':{line++; col = 0; break;}; default:{col++; break;};
+            };
+        };
+    public:
+
+    char consume(){
+        char c = (*src)[index];index++; 
+        checkchar(c);
+        return c;
+    }
+
+    void next(){index++;};
+    void skip(){
+        checkchar((*src)[index]);
+        index++;return;
+    }
+    void move(int ahead){
+        index+=ahead;
+    }
+
+    char peek(){
+        return (*src)[index];
+    }
+    char lookahead(int ahead = 1){
+        if (index+ahead>size){return '\0';};
+        return (*src)[index + ahead];
+    }
+    bool islast(){
+        return (index>size);
+    }
+
+    static Source* create(std::string* src){
+        Source* s = new Source();
+        s->src = src;
+        s->index = 0;
+        s->size = src->size();
+        s->col = 0;
+        s->line = 1;
+    };
 };
 
 struct Lexer {
-    std::vector<Token*> toks;
+    std::vector<Token*> stream;
+    int pointer;
 
-    int tok_size; // Token Count
-    int src_size; // Source character Count
-    int tok_pos; // Token location (index)
-    int src_pos; // Src location (index)
-
-    std::string *src;
-    std::string lexeme;
-
-    Token* curtok;
-
-    static Lexer* create(std::string *src){
-        Lexer* lex = new Lexer();
-        lex->src = src;
-        lex->src_size = src->size();
-        lex->tok_pos = 0;
-        lex->src_pos = 0;
-        lex->tok_size = 0;
-        lex->lexeme = nullptr;
-        return lex;
+    void emit(Token* tok){
+        tok->index = stream.size();
+        stream.push_back(tok);
     };
 
-    // emit() returns a blank, _eof token
-    Token* emit(Token* tok){src_pos++; toks.push_back(tok); return new Token{Code::_eof};};
-    bool   islast(){return src_pos >= src_size-1;};
+    Token* consume(){
+        auto t = stream[pointer];
+        pointer++;
+        return t;
+    };
 
-    void   skip(){src_pos++;}
-    char   nextchar(){src_pos++; if(src_pos > src_size){return '\0';}char c = (*src)[src_pos]; return c;}
-    char   charahead(int ahead = 1){if(src_pos+ahead>src_size){return'\0';}return(*src)[src_pos + ahead];};
-    char   curchar(){return (*src)[src_pos];};
-    void   skipahead(int ahead = 1){src_pos+=ahead;};
+    void retract(){
+        pointer--;
+    };
 
-    Token* consume(){return toks[tok_pos++];}
-    Token* retract(){auto last = toks.back(); tok_pos--; toks.pop_back(); return last;}
+    Token* peek(){
+        return stream[pointer];
+    };
 
-    Token* peek(){return toks[tok_pos];}
-    Token* next(){return toks[tok_pos+1];}
-    Token* lookahead(int ahead){return toks[tok_pos+ahead];}
+    Token* lookahead(int ahead = 1){
+        if (pointer + ahead > stream.size()+1){
+            return Token::null;
+        };
+        return stream[pointer+ahead];
+    };
+
+    bool islast(){
+        return (pointer>stream.size());
+    };
+
+
 
 };
+
 
 extern std::unordered_map<std::string, Code> operators;
 extern std::unordered_map<std::string, Code> keywords;

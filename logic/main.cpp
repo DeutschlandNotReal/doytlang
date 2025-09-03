@@ -50,9 +50,9 @@ int main() {
         std::cout << "Unknown lexer error\n";
     };
 
-    std::cout << lex->tok_size << "tokens!";
+    std::cout << lex->stream.size() << "tokens!";
 
-    printtoks(lex->toks);
+    printtoks(lex->stream);
 
     return 0;
 }
