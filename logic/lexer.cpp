@@ -111,9 +111,9 @@ Lexer* tokenize(std::string *strsrc){
             char termination = '/n';
             if (src->lookahead(1) == '('){termination = ')';};
 
-            while(c != termination){
-                src->consume();
-            };
+            do{
+                c = src->consume();
+            } while(c != termination && !src->islast());
         };
         
         // Spaces always skipped
