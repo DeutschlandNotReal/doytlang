@@ -14,52 +14,55 @@ enum class Code {
     _nulltok, // Token doesn't actually exist
 
     // Punctuation
-    _star,       // *
+    _star,       // *   <- multiplication
     _obracket,   // [
     _cbracket,   // ]
     _obrace,     // {
     _cbrace,     // }
     _oparan,     // (
     _cparan,     // )
-    _minus,      // -
-    _plus,       // +
-    _fslash,     // /
-    _percent,    // %
-    _and,        // &
-    _pipe,       // |
-    _under,      // _
-    _hat,        // ^
-    _exc,        // !
-    _qwe,        // ?
-    _colon,      // :
-    _semi,       // ;
-    _comma,      // ,
-    _dot,        // .
-    _at,         // @
-    _hash,       // #
+    _minus,      // -   <- subtruction
+    _plus,       // +   <- addition
+    _fslash,     // /   <- division
+    _percent,    // %   <- modulo
+    _and,        // &   <- and
+    _pipe,       // |   <- or
+    _under,      // _   <- typically unused, only counted as an _under if a single "_" string
+    _hat,        // ^   <- xor
+    _exc,        // !   <- not
+    _qwe,        // ?   <- maybe ternary operations?
+    _colon,      // :   <- end of statement
+    _semi,       // ;   <- expression termination
+    _comma,      // ,   <- expression seperation
+    _dot,        // .   <- indexing
+    _at,         // @   <- unplanned usage, many indexing??
+    _hash,       // #   <- may be used for counting number of items in arrays/lists/dicts
+    _tilde,      // ~   <- could cover for not, but ! does that
 
+    // [<- This group is just for comparasons as expected
     _gt,         // >
     _lt,         // <
     _eq,         // =
-
     _gteq,       // >= 
     _lteq,       // <=
     _eqeq,       // ==
     _neq,        // !=
-    _exc2,       // !!
-    _qwe2,       // ??
-    _star2,      // *
-    _and2,       // &&
-    _pipe2,      // ||
-    _hat2,       // ^^
-    _gt2,        // >>
-    _lt2,        // <<
+
+
+    _exc2,       // !!  <- no planned usage yet...
+    _qwe2,       // ??  <- no planned usage yet...
+    _star2,      // **  <- exponentiation
+    _and2,       // &&  <- AND comparason (for &, I, ^, the single lettered versions are bitwise)
+    _pipe2,      // ||  <- OR comparason
+    _hat2,       // ^^  <- XOR comparason
+    _gt2,        // >>  <- binary shift right
+    _lt2,        // <<  <- binary shift left
 
     // Keywords
-    _ret,
-    _set,
-    _let,
-    _get,
+    _ret,       // the return keyword
+    _set,       // assignment maybe
+    _let,       // assignment maybe
+    _get,       // to get libraries (maybe just from c++), usage: get 'library name as a literal string'
     _if,
     _else,
     _break,
