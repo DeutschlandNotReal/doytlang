@@ -1,5 +1,3 @@
-#include "lexer.h"
-#include "parser.h"
 #include <vector>
 #include <string>
 #include <stdexcept>
@@ -9,69 +7,50 @@
 #include <optional>
 #include <stack>
 #include <format>
+#include "lexer.h"
+#include "parser.h"
 
 using namespace std;
 
-std::pair<int, int> get_binding(Code code){
-    switch(code){
-        case Code::_exc:       return {6,7}; // unary not
-        case Code::_star2:     return {5,6}; // exponent
-        case Code::_star:      return {4,4}; // multiplication
-        case Code::_fslash:    return {4,4}; // division
-        case Code::_percent:   return {4,4}; // modulo
-        case Code::_plus:      return {3,3}; // addition
-        case Code::_minus:     return {3,3}; // subtraction
-        case Code::_gt2:       return {2,2}; // shift right
-        case Code::_lt2:       return {2,2}; // shift left
-        case Code::_and:       return {1,1}; // bitwise AND
-        case Code::_hat:       return {1,1}; // bitwise XOR
-        case Code::_pipe:      return {1,1}; // bitwise OR
-    };
-    return {0,0};
-};
+std::pair<float, float> get_binding(NodeType type) {
+    switch (type) {
+        case NodeType::_pow:   return {9.0, 9.6}; // exponentiation
 
-enum CodeGroup {
-    _atom,
-    _operation,
-    _unmatched
-};
+        case NodeType::_mul:     return {8.0, 8.0}; // multiplication
+        case NodeType::_div:     return {8.0, 8.0}; // division
+        case NodeType::_mod:     return {8.0, 8.0}; // modulo
 
-CodeGroup get_group(Code code){
-    switch(code){
-        case Code::_exc:
-        case Code::_star2:
-        case Code::_star:
-        case Code::_fslash:
-        case Code::_percent:
-        case Code::_minus:
-        case Code::_gt2:
-        case Code::_lt2:
-        case Code::_and:
-        case Code::_hat:
-        case Code::_pipe:
-            return CodeGroup::_operation;
-        case Code::_ident:
-        case Code::_litnum:
-            return CodeGroup::_atom;
-    };
-    return CodeGroup::_unmatched;
-};
+        case NodeType::_add:     return {7.0, 7.0}; // addition
+        case NodeType::_sub:     return {7.0, 7.0}; // subtraction
 
-SubType get_operation(Code code){
-    switch(code){
-        case Code::_exc:     return SubType::_unot;
-        case Code::_and:     return SubType::_and;
-        case Code::_pipe:    return SubType::_or;
-        case Code::_hat:     return SubType::_xor;
-        case Code::_star:    return SubType::_mul;
-        case Code::_fslash:  return SubType::_div;
-        case Code::_percent: return SubType::_mod;
-        case Code::_gt2:     return SubType::_rsh;
-        case Code::_lt2:     return SubType::_lsh;
-        case Code::_plus:    return SubType::_add;
-        case Code::_minus:   return SubType::_sub;
-    };
-    return SubType::_none;
+        case NodeType::_lsh:     return {6.0, 6.0}; // shift left
+        case NodeType::_rsh:     return {6.0, 6.0}; // shift right
+
+        case NodeType::_lt:      return {5.0, 5.0}; // less than
+        case NodeType::_gt:      return {5.0, 5.0}; // greater than
+        case NodeType::_lteq:    return {5.0, 5.0}; // less equal
+        case NodeType::_gteq:    return {5.0, 5.0}; // greater equal
+        case NodeType::_eq:      return {5.0, 5.0}; // equal
+        case NodeType::_neq:     return {5.0, 5.0}; // not equal
+
+        case NodeType::_and:     return {4.0, 4.0}; // bitwise and
+        case NodeType::_xor:     return {3.5, 3.5}; // bitwise xor
+        case NodeType::_or:      return {3.0, 3.0}; // bitwise or
+
+        case NodeType::_and2:    return {2.0, 2.0}; // logical and
+        case NodeType::_pipe2:   return {1.5, 1.5}; // logical or
+        case NodeType::_tern:    return {1.0, 1.1}; // ternary
+
+        case NodeType::_assign:  return {0.5, 0.4}; // assignment
+
+        case NodeType::_unot:    return {10.0, 10.0}; // logical not
+        case NodeType::_bnot:    return {10.0, 10.0}; // bitwise not
+        case NodeType::_uneg:    return {10.0, 10.0}; // unary negation
+        case NodeType::_inc:     return {10.0, 10.0}; // increment
+        case NodeType::_dec:     return {10.0, 10.0}; // decrement
+
+        default:                 return {0.0, 0.0};
+    }
 }
 
 void parse_expression(Lexer* lex, int limit){

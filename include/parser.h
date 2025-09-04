@@ -14,44 +14,50 @@ enum class ParserErrors {
     _unclosed_bracket
 };
 
-enum class NodeType {
+enum class NodeCategory {
     _operation,
+    _assignment,
+    _call,
     _atom,
     _paranthesis,
-    _assignment,
     _expression,
-    _index,
-    _call
 };
 
-enum class SubType {
-    __CONTROL,
+enum class NodeType {
     _none,
     _miscpunc,
-    __OPERATIONS,
-    _mul,
-    _div,
-    _mod,
-    _add,
-    _sub,
-    _and,
-    _xor,
-    _or,
-    _unot,
-    _lsh,
-    _rsh,
-    _eq,
-    _call,
-    __ATOMS,
+
+    _assign,
+
+    // Paranthesis
+    _paranopen,
+    _paranclose,
+
+    //Binary Operations
+    _mul, _div, _mod, _add, _sub, _pow, _log,
+    
+    // Unary Operations
+    _uneg, _inc, _dec, _exp, _ln,
+
+    // Bitwise Operations
+    _and, _xor, _or, _unot, _lsh, _rsh,
+
+    // Comparators
+    _eq, _gt, _lt, _gteq, _lteq,
+
+    // Ternary
+    _tern,
+
+    // Atoms
     _ident,
     _strlit,
     _numlit,
-
+    _boolit,
 };
 
 struct Node {
-    NodeType type;
-    SubType  sub;
+    NodeCategory cat;
+    NodeType  type;
     Token* tok;
     Node* parent;
     std::vector<Node*> children;
@@ -59,13 +65,13 @@ struct Node {
     int right;  // right-most token index in the node
     int left;   // left-most token index in the node
 
-    static Node* conjoin(NodeType type, SubType sub, Token* tok, std::vector<Node*> children){
-        Node* parent = new Node{type, sub, tok, nullptr, children};
+    static Node* conjoin(NodeCategory cat, NodeType type, Token* tok, std::vector<Node*> children){
+        Node* parent = new Node{cat, type, tok, nullptr, children};
         return parent;
     }
 
-    static Node* new_atom(NodeType type, SubType sub, Token* tok, Node* parent=nullptr){
-        Node* atom = new Node{type, sub, tok, parent, {}};
+    static Node* new_atom(NodeCategory cat, NodeType type, Token* tok, Node* parent=nullptr){
+        Node* atom = new Node{cat, type, tok, parent, {}};
         return atom;
     }
 

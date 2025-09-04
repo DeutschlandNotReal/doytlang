@@ -112,26 +112,20 @@ struct Source {
     int line;
     int col;
 
-    private:
-        int readuntil;
-        void checkchar(char c){
-            if (index < readuntil){return;};
-            readuntil = index;
-            switch(c){
-                case '\n':{line++; col = 0; break;}; default:{col++; break;};
-            };
-        };
-    public:
-
     char consume(){
         char c = (*src)[index];index++; 
-        checkchar(c);
+        return c;
+    }
+
+    char advance(){
+        char c = (*src)[index];
+        index++;
+        switch(c){case '\n': line++; col=1; break; default: col++;};
         return c;
     }
 
     void next(){index++;};
     void skip(){
-        checkchar((*src)[index]);
         index++;return;
     }
     void move(int ahead){
@@ -146,7 +140,10 @@ struct Source {
         return (*src)[index + ahead];
     }
     bool islast(){
-        return (index>size);
+        return (index+1>=size);
+    }
+    bool isnextOOB(){
+        return (index+2>size);
     }
 
     static Source* create(std::string* src){

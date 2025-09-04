@@ -4,12 +4,17 @@
 #include <iostream>
 #include <map>
 #include <unordered_map>
+#include <sstream>
+#include <stdexcept>
+#include <format>
+
 #include "lexer.h"
+
 
 std::pair<Code, std::string> match_punctuation(char a, char b, Source* src){
     std::string lexeme(1, a);
 
-    #define inc { src->skip(); lexeme.push_back(b); }
+    #define inc { src->advance(); lexeme.push_back(b); }
     #define returnl(c) return std::make_pair(c, lexeme)
 
     switch(a){
@@ -62,6 +67,7 @@ std::pair<Code, std::string> match_punctuation(char a, char b, Source* src){
         case ',': returnl(Code::_comma);
         case '#': returnl(Code::_hash);
         case '@': returnl(Code::_at);
+        case '~': returnl(Code::_tilde);
 
         case '+': returnl(Code::_plus);
         case '-': returnl(Code::_minus);
@@ -103,60 +109,82 @@ Lexer* tokenize(std::string *strsrc){
     Lexer *lex = new Lexer();
 
     while (!src->islast()){
-        char c = src->consume();
+        char c = src->advance();
 
         // Comment checking (comment sequence: /*())
         if (c == '/' && src->lookahead(1) == '*'){
-            src->consume(); // consumes *
-            char termination = '/n';
+            src->advance(); // consumes *
+            char termination = '\n';
             if (src->lookahead(1) == '('){termination = ')';};
 
             do{
-                c = src->consume();
-            } while(c != termination || src->index >= src->size);
+                c = src->advance();
+            } while(c != termination && !src->isnextOOB());
         };
-        
-        // Spaces always skipped
-        if (isspace(c)){continue;};
 
-        // Punctuation match check
-        int line = src->line; int col = src->col;
-        auto [puncmatch, punclexeme] = match_punctuation(c, src->lookahead(), src);
-        if (puncmatch != Code::_unknown){
-            lex->emit(new Token{puncmatch, 0, 0, col, line, punclexeme});
+        // Punctuation check
+        auto [punctcode, punctlexeme] = match_punctuation(c,src->lookahead(1), src);
+        if (punctcode != Code::_unknown){
+            lex->emit(new Token{punctcode, 0, 0, src->col, src->line, punctlexeme});
             continue;
         };
 
-        // Number literals
-        if (isdigit(c)){
-            auto t = new Token{Code::_litnum, 0, 0, col, line, ""};
-            int hasdot = false;
-            int rollback = 0;
+        // Spaces always skipped
+        if (isspace(c)){
+            continue;
+        };
+
+        // Strings
+        if (c == '\''){
+            auto stok = new Token{Code::_litstr, 0, 0, src->col, src->line};
+            c = src->advance(); // consumes initial '
             do{
-                c = src->peek();
-                if (isdigit(c)){
-                    t->lexeme.push_back(c);
-                }
-                else if (c == '.'){
+
+            } while(!src->isnextOOB() || c == '\'');
+        };
+
+        // Numbers
+        if (isdigit(c)){
+            auto dtok = new Token{Code::_litnum, 0, 0, src->col, src->line};
+            src->col++;
+            bool hasdot = false;
+
+            do{
+                if (c == '.'){
                     if (hasdot){
-                        rollback = 1;
-                    } else {
-                        hasdot = true;
-                        t->lexeme.push_back(c);
-                    };
-                }
-                else {
-                    rollback = 1;
+                        throw std::runtime_error("Malformed number");
+                    }
+                    else{hasdot=true;};
+                };
+                if (!isdigit(c)){
+                    throw std::runtime_error("Malformed number");
                 };
 
-                if (rollback>0){break;};
-                src->next();
-                if (src->islast()){break;};
-            } while (!isspace(c));
-            t->val = std::stof(t->lexeme);
-            lex->emit(t);
-            src->move(-rollback);
+                dtok->lexeme.push_back(c);
+                if (isspace(src->lookahead(1))){break;};
+
+                c = src->advance();
+            } while (!src->isnextOOB() && !isspace(c));
+            dtok->val = std::stof(dtok->lexeme);
+            lex->stream.push_back(dtok);
+            continue;
         };
+
+        // Identifiers
+        if (isalpha(c) || c == '_'){
+            auto itok = new Token{Code::_ident, 0, 0,src->col, src->line};
+            do{
+                itok->lexeme.push_back(c);
+
+                if (isspace(src->lookahead(1))){break;};
+                c = src->advance();
+            } while (!src->isnextOOB() && !isspace(c));
+            itok->val = itok->lexeme;
+            lex->stream.push_back(itok);
+            continue;
+        };
+
+
 
     };
     
