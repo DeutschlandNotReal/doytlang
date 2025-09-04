@@ -1,4 +1,6 @@
-#pragma once
+#ifndef PARSER_H
+#define PARSER_H
+
 #include <vector>
 #include <string>
 #include "lexer.h"
@@ -72,3 +74,5 @@ struct Node {
         newpar->children.push_back(this);
     }
 };
+
+#endif
