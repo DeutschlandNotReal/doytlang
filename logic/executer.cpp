@@ -1,4 +1,4 @@
-#include "lexer.cpp"
+#include "lexer.h"
 
 void Execute(){
     

@@ -1,3 +1,6 @@
 test/
 main.exe
 .vscode
+build/
+cmake*
+.idea/

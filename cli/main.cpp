@@ -2,13 +2,11 @@
 // ./main.exe
 
 #include "lexer.h"
-#include "lexer.cpp"
 #include <fstream>
 #include <iostream>
 #include <sstream>
 #include <string>
 #include "parser.h"
-#include "parser.cpp"
 
 std::string ReadFile(const std::string& filepath) {
     std::ifstream file(filepath);
