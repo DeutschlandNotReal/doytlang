@@ -36,7 +36,11 @@ std::pair<float, float> get_binding_power(NodeType type) {
         case NodeType::_lt:    return {2.0f, 2.0f}; // <
         case NodeType::_gteq:  return {2.0f, 2.0f}; // >=
         case NodeType::_lteq:  return {2.0f, 2.0f}; // <=
-        case NodeType::_new:   return {2.0f, 2.0f}; // "new" operator (constructor-like)
+        case NodeType::_neq:   return {2.0f, 2.0f}; // !=
+        case NodeType::_cand:  return {2.0f, 2.0f}; // &&
+        case NodeType::_cnot:  return {2.0f, 2.0f}; // !!
+        case NodeType::_cxor:  return {2.0f, 2.0f}; // ^^
+        case NodeType::_cor:   return {2.0f, 2.0f}; // ||
 
         // --- Unary Operations ---
         case NodeType::_uneg:  return {10.0f, 10.0f}; // negation
@@ -53,11 +57,43 @@ std::pair<float, float> get_binding_power(NodeType type) {
     }
 }
 
+NodeType match_nodetype(Code now, Code prev, Code next){
+    switch(now){
+        case Code::_and:     return NodeType::_and;
+        case Code::_and2:    return NodeType::_cand;
+        case Code::_pipe:    return NodeType::_or;
+        case Code::_pipe2:   return NodeType::_cor;
+        case Code::_hat:     return NodeType::_xor;
+        case Code::_hat2:    return NodeType::_cxor;
+        case Code::_exc:     return NodeType::_unot;
+        case Code::_exc2:    return NodeType::_cnot;
+        
+        case Code::_plus:    return NodeType::_add;
+        case Code::_minus:switch(next){
+            case Code::_litnum:
+            case Code::_ident:
+                return NodeType::_uneg;
+            default: return NodeType::_sub;
+        };
+        case Code::_star:    return NodeType::_mul;
+        case Code::_star2:   return NodeType::_pow;
+        case Code::_fslash:  return NodeType::_div;
+        case Code::_percent: return NodeType::_mod;
+        
+        case Code::_eqeq:    return NodeType::_eq;
+        case Code::_neq:     return NodeType::_neq;
+        case Code::_gt:      return NodeType::_gt;
+        case Code::_gteq:    return NodeType::_gteq;
+        case Code::_lt:      return NodeType::_lt;
+        case Code::_lteq:    return NodeType::_lteq;
+
+        default: return NodeType::_none;
+    };
+};
+
 
 void parse_expression(Lexer* lex, int limit){
-    Token* tok = lex->peek();
+    int startpoint = lex->pointer;
 
-    int parandebt = 0;
 
-    return;
 };
