@@ -1,5 +1,4 @@
-#ifndef LEXER_H
-#define LEXER_H
+#pragma once
 #include <string>
 #include <vector>
 #include <unordered_map>
@@ -198,5 +197,3 @@ struct Lexer {
 extern std::unordered_map<std::string, Code> operators;
 extern std::unordered_map<std::string, Code> keywords;
 Lexer *tokenize(std::string *src);
-
-#endif

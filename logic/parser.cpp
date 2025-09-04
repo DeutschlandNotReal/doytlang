@@ -7,51 +7,52 @@
 #include <optional>
 #include <stack>
 #include <format>
-#include "lexer.h"
-#include "parser.h"
+#include "../include/parser.h"
+#include "../include/lexer.h"
 
-using namespace std;
-
-std::pair<float, float> get_binding(NodeType type) {
+std::pair<float, float> get_binding_power(NodeType type) {
     switch (type) {
-        case NodeType::_pow:   return {9.0, 9.6}; // exponentiation
+        // --- Binary Operations ---
+        case NodeType::_pow:   return {9.0f, 9.5f}; // exponentiation
+        case NodeType::_log:   return {9.0f, 9.5f}; // logarithm (will be optimized with constant base don't you worry)
 
-        case NodeType::_mul:     return {8.0, 8.0}; // multiplication
-        case NodeType::_div:     return {8.0, 8.0}; // division
-        case NodeType::_mod:     return {8.0, 8.0}; // modulo
+        case NodeType::_mul:   return {8.0f, 8.0f}; // multiplication
+        case NodeType::_div:   return {8.0f, 8.0f}; // division
+        case NodeType::_mod:   return {8.0f, 8.0f}; // modulo
 
-        case NodeType::_add:     return {7.0, 7.0}; // addition
-        case NodeType::_sub:     return {7.0, 7.0}; // subtraction
+        case NodeType::_add:   return {7.0f, 7.0f}; // addition
+        case NodeType::_sub:   return {7.0f, 7.0f}; // subtraction
 
-        case NodeType::_lsh:     return {6.0, 6.0}; // shift left
-        case NodeType::_rsh:     return {6.0, 6.0}; // shift right
+        case NodeType::_lsh:   return {6.0f, 6.0f}; // shift left
+        case NodeType::_rsh:   return {6.0f, 6.0f}; // shift right
 
-        case NodeType::_lt:      return {5.0, 5.0}; // less than
-        case NodeType::_gt:      return {5.0, 5.0}; // greater than
-        case NodeType::_lteq:    return {5.0, 5.0}; // less equal
-        case NodeType::_gteq:    return {5.0, 5.0}; // greater equal
-        case NodeType::_eq:      return {5.0, 5.0}; // equal
-        case NodeType::_neq:     return {5.0, 5.0}; // not equal
+        case NodeType::_and:   return {5.0f, 5.0f}; // bitwise AND
+        case NodeType::_xor:   return {4.0f, 4.0f}; // bitwise XOR
+        case NodeType::_or:    return {3.0f, 3.0f}; // bitwise OR
 
-        case NodeType::_and:     return {4.0, 4.0}; // bitwise and
-        case NodeType::_xor:     return {3.5, 3.5}; // bitwise xor
-        case NodeType::_or:      return {3.0, 3.0}; // bitwise or
+        // --- Comparators ---
+        case NodeType::_eq:    return {2.0f, 2.0f}; // ==
+        case NodeType::_gt:    return {2.0f, 2.0f}; // >
+        case NodeType::_lt:    return {2.0f, 2.0f}; // <
+        case NodeType::_gteq:  return {2.0f, 2.0f}; // >=
+        case NodeType::_lteq:  return {2.0f, 2.0f}; // <=
+        case NodeType::_new:   return {2.0f, 2.0f}; // "new" operator (constructor-like)
 
-        case NodeType::_and2:    return {2.0, 2.0}; // logical and
-        case NodeType::_pipe2:   return {1.5, 1.5}; // logical or
-        case NodeType::_tern:    return {1.0, 1.1}; // ternary
+        // --- Unary Operations ---
+        case NodeType::_uneg:  return {10.0f, 10.0f}; // negation
+        case NodeType::_inc:   return {10.0f, 10.0f}; // increment
+        case NodeType::_dec:   return {10.0f, 10.0f}; // decrement
+        case NodeType::_exp:   return {10.0f, 10.0f}; // exponential
+        case NodeType::_ln:    return {10.0f, 10.0f}; // natural log
+        case NodeType::_unot:  return {10.0f, 10.0f}; // unary NOT
 
-        case NodeType::_assign:  return {0.5, 0.4}; // assignment
+        // --- Ternary ---
+        case NodeType::_tern:  return {1.0f, 1.0f}; // ternary ? :
 
-        case NodeType::_unot:    return {10.0, 10.0}; // logical not
-        case NodeType::_bnot:    return {10.0, 10.0}; // bitwise not
-        case NodeType::_uneg:    return {10.0, 10.0}; // unary negation
-        case NodeType::_inc:     return {10.0, 10.0}; // increment
-        case NodeType::_dec:     return {10.0, 10.0}; // decrement
-
-        default:                 return {0.0, 0.0};
+        default: return {0.0f, 0.0f}; // non-operator types
     }
 }
+
 
 void parse_expression(Lexer* lex, int limit){
     Token* tok = lex->peek();

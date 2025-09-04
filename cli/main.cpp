@@ -1,4 +1,4 @@
-// g++ logic\main.cpp -o main
+// g++ cli\main.cpp -o main
 // ./main.exe
 
 #include "lexer.h"

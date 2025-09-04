@@ -1,6 +1,4 @@
-#ifndef PARSER_H
-#define PARSER_H
-
+#pragma once
 #include <vector>
 #include <string>
 #include "lexer.h"
@@ -20,7 +18,7 @@ enum class NodeCategory {
     _call,
     _atom,
     _paranthesis,
-    _expression,
+    _expression
 };
 
 enum class NodeType {
@@ -43,7 +41,7 @@ enum class NodeType {
     _and, _xor, _or, _unot, _lsh, _rsh,
 
     // Comparators
-    _eq, _gt, _lt, _gteq, _lteq,
+    _eq, _gt, _lt, _gteq, _lteq, _new,
 
     // Ternary
     _tern,
@@ -52,7 +50,7 @@ enum class NodeType {
     _ident,
     _strlit,
     _numlit,
-    _boolit,
+    _boolit
 };
 
 struct Node {
@@ -80,5 +78,3 @@ struct Node {
         newpar->children.push_back(this);
     }
 };
-
-#endif
