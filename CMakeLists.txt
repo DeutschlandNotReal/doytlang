@@ -8,9 +8,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 add_library(doytlang SHARED
-        logic/executer.cpp
-        logic/parser.cpp
-        logic/lexer.cpp
+        
 )
 
 target_include_directories(doytlang PUBLIC include)

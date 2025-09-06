@@ -1,78 +1,54 @@
 // g++ cli\main.cpp -o main
 // ./main.exe
 
-#include "lexer.h"
 #include <fstream>
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <chrono>
 #include <optional>
-#include "parser.h"
+#include "../include/lexer.hpp"
 
-std::optional<std::string> ReadFile(const std::string &filepath)
+using namespace std;
+
+void display_tokens(std::vector<Token*> toks)
 {
-    std::ifstream file(filepath);
-    if (!file)
-    {
-        std::cerr << "The file " << filepath << " is NOT real.\n";
-        return std::nullopt;
-    };
-
-    std::stringstream buffer;
-    buffer << file.rdbuf();
-    return buffer.str();
-}
-
-void printtoks(std::vector<Token *> toks)
-{
+    std::cout << '\n';
     for (int i = 0; i < toks.size(); i++)
     {
         Token *tok = toks[i];
         auto lexeme = tok->lexeme;
 
-        if (i % 2 == 0)
-        {
-            std::cout << "\033[41m" << lexeme << "\033[0m";
-        }
-        else
-        {
-            std::cout << "\033[44m" << lexeme << "\033[0m";
-        }
+        if (i % 2 == 0){std::cout << "\033[41m" << lexeme << "\033[0m";}
+        else{std::cout << "\033[44m" << lexeme << "\033[0m";}
     };
 };
-
-int main()
+int main(int argc, char* argv[])
 {
-    auto opt = ReadFile("test/main.doyt");
-    if (!opt.has_value())
-    {
-        std::cout << "No source file found, exiting...\n";
+    if (argc < 2){
+        cerr << "\nMust input a filepath!\n";
         return 1;
     };
-    auto src = opt.value();
-    std::cout << "Reading " << src << '\n';
+
+    const string filepath = argv[1];
+    auto rawsrc = Source::construct(filepath);
+
+    if(!rawsrc.has_value()){cout << "Cannot read file '" << filepath << "'!"; return 1;};
+    Source* src = rawsrc.value();
+
+    std::cout << "Tokenizing " << src->src.size() << " characters from " << filepath << "\n";
     Lexer *lex;
 
-    try
-    {
-        lex = tokenize(&src);
-    }
-    catch (const std::runtime_error &e)
-    {
-        std::cout << "tokenizer error: " << e.what() << '\n';
-    }
-    catch (const std::exception &e)
-    {
-        std::cout << "error with tokenizer... " << e.what() << '\n';
-    }
-    catch (...)
-    {
-        std::cout << "Unknown lexer error\n";
-    };
+    auto bench_begin = chrono::high_resolution_clock::now();
+    try{lex = tokenize(src);}
+    catch (const std::runtime_error &e){std::cout << "tokenizer error: " << e.what() << '\n';}
+    catch (const std::exception &e){std::cout << "error with tokenizer... " << e.what() << '\n';}
+    catch (...){std::cout << "Unknown lexer error\n";};
+    auto bench_final = chrono::high_resolution_clock::now();
+    chrono::duration<double, milli> elapsed = bench_final - bench_begin;
 
-    std::cout << lex->stream.size() << "tokens!";
-
-    printtoks(lex->stream);
+    std::cout << "\nProduced " << lex->stream.size() << " token(s)! (duration: " << elapsed.count() << "ms)";
+    display_tokens(lex->stream);
 
     return 0;
 }
