@@ -32,11 +32,14 @@ int main(int argc, char* argv[])
 
     bool debug_msg = false;
     bool print_tok = false;
-    if (argc >= 3 && (string(argv[2]) == "debug_on")){
-        debug_msg = true;
-    };
-    if (argc >= 4 && (string(argv[3]) == "print_toks")){
-        print_tok = true;
+
+    if (argc > 2){
+        for (int argi = 2; argi<argc; argi++){
+            string sarg = string(argv[argi]);
+            if(sarg=="disp"){print_tok = true; continue;};
+            if(sarg=="step"){debug_msg = true; continue;};
+            cerr << "\n invalid arguement " << argi << " (" << sarg << ")";
+        };
     };
 
     const string filepath = argv[1];
