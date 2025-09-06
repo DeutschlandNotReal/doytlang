@@ -31,8 +31,12 @@ int main(int argc, char* argv[])
     };
 
     bool debug_msg = false;
+    bool print_tok = false;
     if (argc >= 3 && (string(argv[2]) == "debug_on")){
         debug_msg = true;
+    };
+    if (argc >= 4 && (string(argv[3]) == "print_toks")){
+        print_tok = true;
     };
 
     const string filepath = argv[1];
@@ -53,7 +57,7 @@ int main(int argc, char* argv[])
     chrono::duration<double, milli> elapsed = bench_final - bench_begin;
 
     std::cout << "\nProduced " << lex->stream.size() << " token(s)! (duration: " << elapsed.count() << "ms)";
-    display_tokens(lex->stream);
+    if (print_tok){display_tokens(lex->stream);};
 
     return 0;
 }
