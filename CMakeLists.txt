@@ -7,13 +7,12 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-add_library(doytlang SHARED
-        
+add_library(doytlang INTERFACE)
+
+target_include_directories(doytlang INTERFACE
+    $<INSTALL_INTERFACE:include>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
 )
-
-target_include_directories(doytlang PUBLIC include)
-
-set_target_properties(doytlang PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 
 add_executable(cli
