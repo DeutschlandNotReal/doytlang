@@ -264,6 +264,7 @@ inline Lexer *tokenize(Source* src, bool debug_msg){
             emit(strtok); continue;
         };
 
+        // Number Match
         if (isdigit(c)){
             if(debug_msg){cout << "\nDetected number literal start.";};
             auto numtok = src->newtoken(TokenCode::_litint, nullopt);
