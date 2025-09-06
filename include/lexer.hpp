@@ -146,8 +146,6 @@ inline optional<Token*> match_punctuation(Source* src){
     char a = src->peek(0);
     char b = src->peek(1);
     
-    cout << "\nMatchPunct of: " << a << b;
-    
     #define monotok(code){auto tok = src->newtoken(code, string(1, a)); src->advance(); return tok;};
     #define duotok(code){auto tok = src->newtoken(code, string({a, b})); src->advance(); src->advance(); return tok;};
 
