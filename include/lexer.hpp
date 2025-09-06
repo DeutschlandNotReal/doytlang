@@ -114,8 +114,14 @@ struct Source {
     // Serves the same purpose as consume, but also influences source context
     char advance(){
         char c = src[pointer++];
-        if (c == '\n'){context.curcolumn=1; context.curline++;}else{context.curcolumn++;};
+        if(c == '\n'){context.curcolumn=1; context.curline++;}else{context.curcolumn++;};
         return c;
+    };
+
+    char advancenext(){
+        if(src[pointer] == '\n'){context.curcolumn=1; context.curline++;}else{context.curcolumn++;};
+        pointer++;
+        return src[pointer];
     };
 
     static optional<Source*> construct(const string &filepath){
@@ -137,52 +143,54 @@ struct Source {
 };
 
 inline optional<Token*> match_punctuation(Source* src){
-    char a = src->peek();
+    char a = src->peek(0);
     char b = src->peek(1);
     
-    #define monotok(code){auto tok = src->newtoken(code, string(1, a)); src->advance(); return tok; break;};
-    #define duotok(code){auto tok = src->newtoken(code, string({a, b})); src->advance(); src->advance(); return tok; break;};
+    cout << "\nMatchPunct of: " << a << b;
+    
+    #define monotok(code){auto tok = src->newtoken(code, string(1, a)); src->advance(); return tok;};
+    #define duotok(code){auto tok = src->newtoken(code, string({a, b})); src->advance(); src->advance(); return tok;};
 
     switch(a){
         case '=':switch(b){
             case '=': duotok(TokenCode::_deq);
             default: monotok(TokenCode::_eq);
-        } return nullopt;
+        };
         case '>':switch(b){
             case '=': duotok(TokenCode::_gteq);
             case '>': duotok(TokenCode::_dgt);
             default: monotok(TokenCode::_gt);
-        } return nullopt;
+        };
         case '<':switch(b){
             case '=': duotok(TokenCode::_lteq);
             case '<': duotok(TokenCode::_dlt);
             default: monotok(TokenCode::_lt);
-        } return nullopt;
+        };
         case '!':switch(b){
             case '=': duotok(TokenCode::_neq);
             case '!': duotok(TokenCode::_desc);
             default: monotok(TokenCode::_exc);
-        } return nullopt;
+        };
         case '?':switch(b){
             case '?': duotok(TokenCode::_dqwe);
             default: monotok(TokenCode::_qwe);
-        } return nullopt;
+        };
         case '&':switch(b){
             case '&': duotok(TokenCode::_dand);
             default: monotok(TokenCode::_and);
-        } return nullopt;
+        };
         case '^':switch(b){
             case '^': duotok(TokenCode::_dhat);
             default: monotok(TokenCode::_hat);
-        } return nullopt;
+        };
         case '|':switch(b){
             case '|': duotok(TokenCode::_dpipe);
             default: monotok(TokenCode::_pipe);
-        } return nullopt;
+        };
         case '*':switch(b){
             case '*': duotok(TokenCode::_dstar);
             default: monotok(TokenCode::_star);
-        } return nullopt;
+        };
         case '+': monotok(TokenCode::_plus);
         case '-': monotok(TokenCode::_minus);
         case '/': monotok(TokenCode::_fslash);
@@ -200,67 +208,90 @@ inline optional<Token*> match_punctuation(Source* src){
         case ')': monotok(TokenCode::_paran2);
         case '[': monotok(TokenCode::_bracket1);
         case ']': monotok(TokenCode::_bracket2);
+        default: return nullopt;
     };
-    return nullopt;
 };
 
 unordered_map<string, TokenCode> keywordmap {
     {"exit", TokenCode::_kw_exit}
 };
 
+inline string vischar(char c){
+    switch(c){
+        case '\0': return "<null>";
+        case '\n': return "<newline>";
+        case '\t': return "<tab>";
+        case '\r': return "<return>";
+        case ' ':  return "<space>";
+        default: return string(1, c);
+    };
+};
 
-inline Lexer *tokenize(Source* src){
+inline Lexer *tokenize(Source* src, bool debug_msg){
     Lexer *lex = new Lexer{};
     char c = src->peek();
 
-    #define consume c=src->advance()
+    #define adv      c = src->advance()
+    #define advnext  c = src->advancenext()
+    #define emit(v) lex->emit(v);if(debug_msg){cout<<"\nEmitted token w/ lexeme: "<<v->lexeme;}
 
+    int lastindex = -1;
     do{
-        if (isspace(c)){consume; continue;};
+        c=src->peek();
+        if(debug_msg){cout<<"\nProccessing: "<<vischar(c);};
+        if (isspace(c)){advnext; continue;};
+
         // Punctuation match (all 1-2 character symbols)
         auto ptok = match_punctuation(src);
-        if(ptok.has_value()){lex->emit(ptok.value()); continue;};
+        if(ptok.has_value()){
+            if(debug_msg){cout<<"\nMatched punctuation: "<<ptok.value()->lexeme;};
+            emit(ptok.value()); continue;
+        } else if (debug_msg){cout<<"\nFailed to match to punc";};
 
         // String literal match
         if(c=='\''){
-            consume; // consumes initial '
+            if(debug_msg){{cout<<"\nDetected string literal start.";}};
+            c = src->advancenext(); // consumes initial '
             auto strtok = src->newtoken(TokenCode::_litstr, nullopt);
             while (1){
                 if(c=='\0'){
                     // reached eof w/o string termination
-                    throw runtime_error("Unterminated string!");
-                } else if (c == '\''){consume; break;};
+                    throw runtime_error("\nUnterminated string!");
+                } else if (c == '\''){src->advance(); break;};
 
                 strtok->lexeme.push_back(c);
-                consume;
+                advnext;
             };
-            lex->emit(strtok); continue;
+            
+            emit(strtok); continue;
         };
 
         if (isdigit(c)){
+            if(debug_msg){cout << "\nDetected number literal start.";};
             auto numtok = src->newtoken(TokenCode::_litint, nullopt);
             while (1){
                 if(c=='\0'){break;};
                 if(!isalnum(c) && c != '.'){break;};
 
                 numtok->lexeme.push_back(c);
-                consume;
+                advnext;
             };
             try{numtok->payload = stoi(numtok->lexeme);}
             catch(...){ // Is an invalid int
                 try{numtok->code = TokenCode::_litfloat; numtok->payload = stof(numtok->lexeme);}
-                catch(const invalid_argument &e){throw runtime_error("Malformed number!");}
-                catch(const out_of_range &e){throw runtime_error("Number out of range!");};
+                catch(const invalid_argument &e){throw runtime_error("\nMalformed number!");}
+                catch(const out_of_range &e){throw runtime_error("\nNumber out of range!");};
             };
-            lex->emit(numtok); continue;
+            emit(numtok); continue;
         };
         
         if (isalpha(c)){
+            if(debug_msg){cout << "\nDetected identifier start.";};
             auto identok = src->newtoken(TokenCode::_ident, nullopt);
             while (1){
                 if(c == '\0' || !isalnum(c)){break;};
                 identok->lexeme.push_back(c);
-                consume;
+                advnext;
             };
             identok->payload = identok->lexeme;
 
@@ -268,12 +299,16 @@ inline Lexer *tokenize(Source* src){
                 identok->code = keywordmap[identok->lexeme];
             };
 
-            lex->emit(identok); continue;
+            emit(identok); continue;
         };
         
         if (c == '\0'){break;};
-        cout << "\nUncaught symbol (" << c << ")!";
-        consume;
+        if(debug_msg){cout << "\nUncaught symbol '" << c << "'";};
+
+        // to stop forever-loops
+        if(lastindex==src->pointer){throw runtime_error("\nExited hazardous loop...");}
+        lastindex=src->pointer;
+        advnext;
     } while (c != '\0');
 
     return lex;

@@ -19,8 +19,8 @@ void display_tokens(std::vector<Token*> toks)
         Token *tok = toks[i];
         auto lexeme = tok->lexeme;
 
-        if (i % 2 == 0){std::cout << "\033[41m" << lexeme << "\033[0m";}
-        else{std::cout << "\033[44m" << lexeme << "\033[0m";}
+        if (i % 2 == 0){std::cout << "\033[41m" << lexeme << "\033[0m ";}
+        else{std::cout << "\033[44m" << lexeme << "\033[0m ";}
     };
 };
 int main(int argc, char* argv[])
@@ -28,6 +28,11 @@ int main(int argc, char* argv[])
     if (argc < 2){
         cerr << "\nMust input a filepath!\n";
         return 1;
+    };
+
+    bool debug_msg = false;
+    if (argc >= 3 && (string(argv[2]) == "debug_on")){
+        debug_msg = true;
     };
 
     const string filepath = argv[1];
@@ -40,7 +45,7 @@ int main(int argc, char* argv[])
     Lexer *lex;
 
     auto bench_begin = chrono::high_resolution_clock::now();
-    try{lex = tokenize(src);}
+    try{lex = tokenize(src, debug_msg);}
     catch (const std::runtime_error &e){std::cout << "tokenizer error: " << e.what() << '\n';}
     catch (const std::exception &e){std::cout << "error with tokenizer... " << e.what() << '\n';}
     catch (...){std::cout << "Unknown lexer error\n";};
