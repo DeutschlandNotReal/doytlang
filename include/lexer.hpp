@@ -83,6 +83,61 @@ enum TokenCode {
     __GROUP_FINAL
 };
 
+inline string tokencode_to_string(TokenCode code){
+    switch(code){
+        case TokenCode::_eof: return "<eof>";
+        case TokenCode::_none: return "<none>";
+        case TokenCode::_ident: return "<ident>";
+        case TokenCode::_kw_exit: return "<exit>";
+        case TokenCode::_kw_func: return "<func>";
+        case TokenCode::_kw_let: return "<let>";
+        case TokenCode::_litstr: return "<str>";
+        case TokenCode::_litfloat: return "<float>";
+        case TokenCode::_litdouble: return "<double>";
+        case TokenCode::_litint: return "<int>";
+        case TokenCode::_litbool: return "<bool>";
+        case TokenCode::_brace1: return "<brace1>";
+        case TokenCode::_brace2: return "<brace2>";
+        case TokenCode::_bracket1: return "<bracket1>";
+        case TokenCode::_bracket2: return "<bracket2>";
+        case TokenCode::_paran1: return "<paran1";
+        case TokenCode::_paran2: return "<paran2";
+        case TokenCode::_concat: return "<concat>";
+        case TokenCode::_plus: return "<plus>";
+        case TokenCode::_minus: return "<minus>";
+        case TokenCode::_fslash: return "<fslash>";
+        case TokenCode::_perc: return "<mod>";
+        case TokenCode::_star: return "<star>";
+        case TokenCode::_dstar: return "<dstar>";
+        case TokenCode::_and: return "<and>";
+        case TokenCode::_hat: return "<hat>";
+        case TokenCode::_pipe: return "<pipe>";
+        case TokenCode::_exc: return "<esc>";
+        case TokenCode::_qwe: return "<qwe>";
+        case TokenCode::_dand: return "<dand>";
+        case TokenCode::_dhat: return "<dhat>";
+        case TokenCode::_dpipe: return "<dpipe>";
+        case TokenCode::_desc: return "<desc>";
+        case TokenCode::_dqwe: return "<dqwe>";
+        case TokenCode::_eq: return "<eq>";
+        case TokenCode::_gt: return "<gt>";
+        case TokenCode::_lt: return "<lt>";
+        case TokenCode::_deq: return "<deq>";
+        case TokenCode::_dgt: return "<dgt>";
+        case TokenCode::_dlt: return "<dlt>";
+        case TokenCode::_gteq: return "<gteq>";
+        case TokenCode::_lteq: return "<lteq>";
+        case TokenCode::_neq: return "<neq>";
+        case TokenCode::_comma: return "<comma>";
+        case TokenCode::_dot: return "<dot>";
+        case TokenCode::_colon: return "<colon>";
+        case TokenCode::_semi: return "<semi>";
+        case TokenCode::_tilde: return "<tilde>";
+        case TokenCode::_hash: return "<hash>";
+        default: return "<unknown>";
+    };
+};
+
 typedef variant<string, float, double, int> PayloadVariant;
 
 struct Token {
@@ -93,6 +148,9 @@ struct Token {
     int line;
     int column;
     int index;
+
+
+    Token(TokenCode code) : code(code), lexeme(""), payload(0), line(0), column(0), index(-1) {};
 };
 
 struct SourceContext {
@@ -102,7 +160,7 @@ struct SourceContext {
 };
 
 struct Lexer {
-    vector<Token*> stream; // why is this a stream of POINTERS?
+    vector<Token*> stream;
     int index;
     int tokencount;
     [[nodiscard]] inline optional<Token*> peek(int ahead = 0) const {
@@ -118,8 +176,9 @@ struct Lexer {
     inline bool isahead(TokenCode code, int ahead = 0) const {
         return neof() ? peek(ahead).value()->code == code : false;
     }
-    // because uh uh
-}; //wtf why are we doing using namespace std
+
+    ~Lexer(){for (auto tok : stream){delete tok;};};
+};
 
 struct Source {
     string src;
@@ -310,7 +369,7 @@ inline Lexer *tokenize(Source* src, bool debug_msg){
             if(debug_msg){{cout<<"\nDetected string literal start.";}};
             if (c=='}' && awaitconcat){
                 awaitconcat = 0;
-                emit(src->newtoken(TokenCode::_concat, "concat"));
+                emit(src->newtoken(TokenCode::_concat,""));
             };
 
             c = src->advancenext(); // consumes initial ' or }
@@ -336,7 +395,7 @@ inline Lexer *tokenize(Source* src, bool debug_msg){
                     if(debug_msg){cout << "\nConcat check!";}
                     
                     emit(strtok);
-                    emit(src->newtoken(TokenCode::_concat, "concat"));
+                    emit(src->newtoken(TokenCode::_concat, ""));
                     src->advance(); // consumes {
                     awaitconcat = 1;
                     break;

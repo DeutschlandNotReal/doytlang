@@ -25,14 +25,19 @@ void display_tokens(vector<Token *> toks)
     {
         Token *tok = toks[i];
         auto lexeme = tok->lexeme;
+        auto code = tok->code;
+        auto lexcode = tokencode_to_string(code);
+        if(code != TokenCode::_litstr && code != TokenCode::_ident && code != TokenCode::_litint && code != TokenCode::_litfloat && code != TokenCode::_litdouble && code != TokenCode::_litbool){
+            lexeme = "";
+        };
 
         if (i % 2 == 0)
         {
-            cout << "\033[41m" << lexeme << "\033[0m ";
+            cout << "\033[41m" << lexcode << lexeme << "\033[0m ";
         }
         else
         {
-            cout << "\033[44m" << lexeme << "\033[0m ";
+            cout << "\033[44m" << lexcode << lexeme << "\033[0m ";
         }
     };
 };
