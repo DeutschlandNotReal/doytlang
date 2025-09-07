@@ -7,10 +7,10 @@
 #include <string>
 #include <chrono>
 #include <optional>
-#include "lexer.hpp"
+#include "../include/lexer.hpp"
 
 const char *authors[] = {
-    "DeutschlandNotReal",
+    "DeutschlandNotReal (doytdeuter)",
     "sk337 <me@pk3.zip>",
     "fhudufin",
     nullptr,
@@ -18,9 +18,9 @@ const char *authors[] = {
 
 using namespace std;
 
-void display_tokens(std::vector<Token *> toks)
+void display_tokens(vector<Token *> toks)
 {
-    std::cout << '\n';
+    cout << '\n';      
     for (int i = 0; i < toks.size(); i++)
     {
         Token *tok = toks[i];
@@ -28,11 +28,11 @@ void display_tokens(std::vector<Token *> toks)
 
         if (i % 2 == 0)
         {
-            std::cout << "\033[41m" << lexeme << "\033[0m ";
+            cout << "\033[41m" << lexeme << "\033[0m ";
         }
         else
         {
-            std::cout << "\033[44m" << lexeme << "\033[0m ";
+            cout << "\033[44m" << lexeme << "\033[0m ";
         }
     };
 };

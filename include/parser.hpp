@@ -55,19 +55,14 @@ class ASTNode {
             delete child;
         }
     };
+    
     ASTNode(ASTNode* parent, NodeGroup group, NodePayload payload_type, PayloadVariant payload) {
         children = std::vector<ASTNode*>();
         parent = parent;
         group = group;
         payload_type = payload_type;
         payload = payload;
-    }
-    ASTNode(ASTNode* parent, NodeGroup group, NodePayload payload_type, PayloadVariant payload, initializer_list<ASTNode*> kids)
-        : parent(parent),
-          group(group),
-          payload_type(payload_type),
-          payload(payload),
-          children(kids) {}
+    };
 };
 
 bool is_atom(Token *token) {
@@ -91,7 +86,7 @@ pair<float,float> binding_power(Token op) {
         case TokenCode::_minus: return {1.0, 1.1};
         case TokenCode::_perc:
         case TokenCode::_star:
-        case TokenCode::_fslash:return {2.0, 2}};
+        case TokenCode::_fslash:return {2.0, 2};
     }
 } 
 
@@ -104,7 +99,7 @@ ASTNode* parse_expression(Lexer& lex, float min_bp = 0) {
     if (!lhs_token) {
         throw runtime_error("Tried to parse past EOF");
     }
-    if (!is_atom(lhs)) {
+    if (!is_atom(lhs_token)) {
         throw runtime_error("Expected float literal when parsing expression");
     }
     ASTNode* lhs = new ASTNode(

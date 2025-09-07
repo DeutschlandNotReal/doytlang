@@ -11,16 +11,19 @@
 using namespace std;
 
 enum TokenCode {
+    __GROUP_A,
     _eof,
     _none,
     _ident,
 
     // Keywords
+    __GROUP_B,
     _kw_exit,
     _kw_func,
     _kw_let,
 
     // Literals
+    __GROUP_C,
     _litstr,
     _litfloat,
     _litdouble,
@@ -28,8 +31,7 @@ enum TokenCode {
     _litbool,
 
     // Punctuation
-    _concat, 
-
+    __GROUP_D,
     _brace1,   // {
     _brace2,   // }
     _bracket1, // [
@@ -37,6 +39,8 @@ enum TokenCode {
     _paran1,   // (
     _paran2,   // )
 
+    __GROUP_E,
+    _concat,   // {} or ..?
     _plus,     // +
     _minus,    // -
     _fslash,   // /
@@ -44,22 +48,24 @@ enum TokenCode {
     _star,     // *
     _dstar,    // **
 
+    __GROUP_F,
     _and,      // &
     _hat,      // ^
     _pipe,     // |
     _exc,      // !
     _qwe,      // ?
 
+    __GROUP_G,
     _dand,     // &&
     _dhat,     // ^^
     _dpipe,    // ||
     _desc,     // !!
     _dqwe,     // ??
 
+    __GROUP_H,
     _eq,       // =
     _gt,       // >
     _lt,       // <
-
     _deq,      // ==
     _dgt,      // >>
     _dlt,      // <<
@@ -67,12 +73,14 @@ enum TokenCode {
     _lteq,     // <=
     _neq,      // !=
 
+    __GROUP_I,
     _comma,    // ,
     _dot,      // .
     _colon,    // :
     _semi,     // ;
     _tilde,    // ~
     _hash,     // #
+    __GROUP_FINAL
 };
 
 typedef variant<string, float, double, int> PayloadVariant;
@@ -234,7 +242,7 @@ inline char match_escchar(char a){
         case '\'': return '\'';
         case '\\': return '\\';
         case 'r':  return '\r';
-        case '{': return '}';
+        case '{': return '{';
         default:   return 'n';
     };
 };
@@ -292,7 +300,7 @@ inline Lexer *tokenize(Source* src, bool debug_msg){
 
         // Punctuation match (all 1-2 character symbols)
         auto ptok = match_punctuation(src);
-        if(ptok.has_value() && !(c == '{' && awaitconcat)){
+        if(ptok.has_value() && !(c == '}' && awaitconcat)){
             if(debug_msg){cout<<"\nMatched punctuation: "<<ptok.value()->lexeme;};
             emit(ptok.value()); continue;
         } else if (debug_msg){cout<<"\nFailed to match to punc";};
@@ -302,7 +310,7 @@ inline Lexer *tokenize(Source* src, bool debug_msg){
             if(debug_msg){{cout<<"\nDetected string literal start.";}};
             if (c=='}' && awaitconcat){
                 awaitconcat = 0;
-                emit(src->newtoken(Code::_concat, "concat"));
+                emit(src->newtoken(TokenCode::_concat, "concat"));
             };
 
             c = src->advancenext(); // consumes initial ' or }
@@ -329,10 +337,13 @@ inline Lexer *tokenize(Source* src, bool debug_msg){
                     
                     emit(strtok);
                     emit(src->newtoken(TokenCode::_concat, "concat"));
-                    continue;
+                    src->advance(); // consumes {
+                    awaitconcat = 1;
+                    break;
                 } else { strtok->lexeme.push_back(c);};
                 advnext;
             };
+            if(awaitconcat){continue;};
             
             emit(strtok); continue;
         };
@@ -379,7 +390,7 @@ inline Lexer *tokenize(Source* src, bool debug_msg){
         if (isalpha(c) || c == '_'){
             if(debug_msg){cout << "\nDetected identifier start.";};
             auto identok = src->newtoken(TokenCode::_ident, nullopt);
-            while (1){
+            while(1){
                 if(c == '\0' || (!isalnum(c) && c != '_')){break;};
                 identok->lexeme.push_back(c);
                 advnext;
