@@ -22,6 +22,7 @@ enum TokenGroup {
 enum TokenCode {
     _eof,
     _none,
+    _err,
     _ident,
 
     // Keywords
@@ -100,8 +101,8 @@ inline string tokencode_to_string(TokenCode code){
         case TokenCode::_brace2: return "<brace2>";
         case TokenCode::_bracket1: return "<bracket1>";
         case TokenCode::_bracket2: return "<bracket2>";
-        case TokenCode::_paran1: return "<paran1";
-        case TokenCode::_paran2: return "<paran2";
+        case TokenCode::_paran1: return "<paran1>";
+        case TokenCode::_paran2: return "<paran2>";
         case TokenCode::_concat: return "<concat>";
         case TokenCode::_plus: return "<plus>";
         case TokenCode::_minus: return "<minus>";
@@ -142,6 +143,7 @@ typedef variant<string, float, double, int> PayloadVariant;
 
 struct Token {
     TokenCode code;
+    TokenGroup group;
     string lexeme;
 
     PayloadVariant payload;
@@ -170,7 +172,13 @@ struct Lexer {
 
     inline Token consume() { return stream[index++]; }
 
-    inline void emit(Token tok) { tok.index = tokencount++; stream.push_back(tok); }
+    inline void emit(Token tok) { tok.index = tokencount++; tok.group = match_group(tok.code); stream.push_back(tok); }
+
+    // Gets the token at a relative position from the given token.
+    inline optional<Token> get_relative(Token from, int disp) const {
+        int target_index = from.index + disp;
+        return (target_index < 0 || target_index >= tokencount) ? nullopt : make_optional(stream[target_index]);
+    };
 
     inline bool neof() const { return index < tokencount; }
 
@@ -220,6 +228,72 @@ struct Source {
         tok->line = context.curline;
         tok->column = context.curcolumn;
         return *tok;
+    };
+};
+
+inline TokenGroup match_group(TokenCode code){
+    switch(code){
+        case TokenCode::_eof:
+        case TokenCode::_none:      return TokenGroup::_null;
+
+        case TokenCode::_ident:
+        case TokenCode::_kw_exit:
+        case TokenCode::_kw_func:
+        case TokenCode::_kw_let:    return TokenGroup::_identifiers;
+
+        case TokenCode::_litstr:    return TokenGroup::_strings;
+        case TokenCode::_litfloat:
+        case TokenCode::_litdouble:
+        case TokenCode::_litint:
+        case TokenCode::_litbool:   return TokenGroup::_numbers;
+
+        case TokenCode::_plus:
+        case TokenCode::_minus:
+        case TokenCode::_fslash:
+        case TokenCode::_perc:
+        case TokenCode::_star:
+        case TokenCode::_dstar:
+
+        case TokenCode::_and:
+        case TokenCode::_hat:
+        case TokenCode::_pipe:
+        case TokenCode::_exc:
+        case TokenCode::_qwe:
+
+        case TokenCode::_dand:
+        case TokenCode::_dhat:
+        case TokenCode::_dpipe:
+        case TokenCode::_desc:
+        case TokenCode::_dqwe:
+
+        case TokenCode::_eq:
+        case TokenCode::_gt:
+        case TokenCode::_lt:
+        case TokenCode::_deq:
+        case TokenCode::_dgt:
+        case TokenCode::_dlt:
+        case TokenCode::_gteq:
+        case TokenCode::_lteq:
+        case TokenCode::_neq:
+        case TokenCode::_concat:
+
+            return TokenGroup::_operations;
+
+        case TokenCode::_brace1:
+        case TokenCode::_brace2:
+        case TokenCode::_bracket1:
+        case TokenCode::_bracket2:
+        case TokenCode::_paran1:
+        case TokenCode::_paran2:
+        case TokenCode::_comma:
+        case TokenCode::_dot:
+        case TokenCode::_colon:
+        case TokenCode::_semi:
+        case TokenCode::_tilde:
+        case TokenCode::_hash:
+            return TokenGroup::_punctuation;
+
+        default: return TokenGroup::_null;
     };
 };
 
@@ -323,13 +397,16 @@ inline string vischar(char c){
     };
 };
 
-inline Lexer tokenize(Source &src, bool debug_msg){
-    Lexer lex = *new Lexer{};
+inline Lexer* tokenize(Source &src, bool debug_msg){
+    Lexer* lex = new Lexer{};
     char c = src.peek();
+
+    // could you update parser.hpp w/ your version
+    // or a terminal command I forgot which one
 
     #define adv      c = src.advance()
     #define advnext  c = src.advancenext()
-    #define emit(v) lex.emit(v);if(debug_msg){cout<<"\nEmitted token w/ lexeme: "<<v.lexeme;}
+    #define emit(v) lex->emit(v);if(debug_msg){cout<<"\nEmitted token w/ lexeme: "<<v.lexeme;}
 
     bool awaitconcat = 0;
     bool awaitstr    = '\'';
@@ -375,6 +452,7 @@ inline Lexer tokenize(Source &src, bool debug_msg){
                 src.advance(); // just consume the '}'
                 if (src.peek() == terminator) {
                     src.advance(); // consume the closing quote
+                    
                     continue;       // resume lexing after string
                 }
             } else {
@@ -414,7 +492,6 @@ inline Lexer tokenize(Source &src, bool debug_msg){
             if(awaitconcat){continue;};
             
             emit(strtok); continue;
-            awaitstr = '\0';
             awaitconcat = 0;
         };
 

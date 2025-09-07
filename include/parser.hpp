@@ -29,9 +29,9 @@ enum NodePayload {
     _add, _sub, _div, _mul, _mod, _pow, _log, _concat,
 
     // Unary Operations
-    _neg, _not, _exp, _ln, _abs, _flr,
+    _neg, _not, _exp, _ln, _abs, _flr, _sqrt,
 
-    // Bitwise Operations (exluciding not)
+    // Bitwise Operations (excluding not)
     _and, _or, _xor, _rsh, _lsh,
 
     // Comparative Operations
@@ -41,7 +41,7 @@ enum NodePayload {
     _error // something wrong has happened
 };
 
-class ASTNode {
+struct ASTNode {
     std::vector<ASTNode*> children;
     ASTNode* parent;
 
@@ -65,11 +65,11 @@ class ASTNode {
     };
 };
 
-bool is_atom(Token *token) {
-    return token->code == TokenCode::_litfloat;
+bool is_atom(Token& token) {
+    return token.code == TokenCode::_litfloat;
 }
 
-bool get_op_payload(Token op) {
+bool get_op_payload(Token& op) {
     switch (op.code) {
         case TokenCode::_plus:  return NodePayload::_add;
         case TokenCode::_minus: return NodePayload::_sub;
@@ -80,7 +80,7 @@ bool get_op_payload(Token op) {
 }
 
 // parse_expression should probably handle garbage tokens
-pair<float,float> binding_power(Token op) {
+pair<float,float> binding_power(Token& op) {
     switch(op.code) {
         case TokenCode::_plus:
         case TokenCode::_minus: return {1.0, 1.1};
@@ -89,16 +89,18 @@ pair<float,float> binding_power(Token op) {
         case TokenCode::_fslash:return {2.0, 2};
     }
 } 
+// 1984 alright I'll push this and then we can disconnect
 
 // parse like (a * b / 5)
 ASTNode* parse_expression(Lexer& lex, float min_bp = 0) {
     // minor skidding action..
     // praying that this works.. im off to sleep -fudu
-
-    Token* lhs_token = lex.peek().value_or(nullptr);
-    if (!lhs_token) {
+   // lsp lagging :( 
+    optional<Token> op_lhs_token = lex.peek();
+    if (!op_lhs_token.has_value()) {
         throw runtime_error("Tried to parse past EOF");
     }
+    Token lhs_token = op_lhs_token;
     if (!is_atom(lhs_token)) {
         throw runtime_error("Expected float literal when parsing expression");
     }
@@ -106,17 +108,17 @@ ASTNode* parse_expression(Lexer& lex, float min_bp = 0) {
         nullptr,
         NodeGroup::_atom,
         NodePayload::_litfloat,
-        get<float>(lhs_token->payload)
+        get<float>(lhs_token.payload)
     );
     while (1) {
-        Token* op = lex.peek().value_or(nullptr);
-        if (op->code == TokenCode::_semi) {
+        Token op = lex.peek().value_or(nullptr);
+        if (op.code == TokenCode::_semi) {
             break;
         }
         if (!op) {
             throw runtime_error("Reached EOF while parsing expression");
         }
-        if (!is_op(*op)) {
+        if (get_op_payload(op) == NodePayload::_error) {
             throw runtime_error("Expected valid operator while parsing expression");
         }
 
@@ -126,7 +128,7 @@ ASTNode* parse_expression(Lexer& lex, float min_bp = 0) {
         if (lbp < min_bp) {
             break;
         }
-        ASTNode* rhs = parse_expression(lex, rbp, lhs); // scary recursion but should be fine cuz its only for expressions
+        ASTNode* rhs = parse_expression(lex, rbp); // scary recursion but should be fine cuz its only for expressions
         lhs = new ASTNode(
             nullptr,
             NodeGroup::_operation,

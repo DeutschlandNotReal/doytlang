@@ -7,6 +7,7 @@
 #include <string>
 #include <chrono>
 #include <optional>
+#include <charconv>
 #include "../include/lexer.hpp"
 
 const char *authors[] = {
@@ -18,26 +19,27 @@ const char *authors[] = {
 
 using namespace std;
 
-void display_tokens(vector<Token *> toks)
+void display_tokens(vector<Token> toks)
 {
     cout << '\n';      
     for (int i = 0; i < toks.size(); i++)
     {
-        Token *tok = toks[i];
-        auto lexeme = tok->lexeme;
-        auto code = tok->code;
+        Token tok = toks[i];
+        auto lexeme = tok.lexeme;
+        auto code = tok.code;
         auto lexcode = tokencode_to_string(code);
         if(code != TokenCode::_litstr && code != TokenCode::_ident && code != TokenCode::_litint && code != TokenCode::_litfloat && code != TokenCode::_litdouble && code != TokenCode::_litbool){
             lexeme = "";
         };
+        #define colout(col, content) "\033[" << col << "m" << content << "\033[0m ";
 
         if (i % 2 == 0)
         {
-            cout << "\033[41m" << lexcode << lexeme << "\033[0m ";
+            cout << colout(41, lexcode<<lexeme);
         }
         else
         {
-            cout << "\033[44m" << lexcode << lexeme << "\033[0m ";
+            cout << colout(44, lexcode<<lexeme);
         }
     };
 };
@@ -92,10 +94,10 @@ int main(int argc, char *argv[])
         cout << "Cannot read file '" << filepath << "'!";
         return 1;
     };
-    Source *src = rawsrc.value();
+    Source src = *rawsrc.value();
 
-    std::cout << "Tokenizing " << src->src.size() << " characters from " << filepath << "\n";
-    Lexer *lex;
+    std::cout << "Tokenizing " << src.src.size() << " characters from " << filepath << "\n";
+    Lexer* lex;
 
     auto bench_begin = chrono::high_resolution_clock::now();
     try
