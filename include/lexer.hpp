@@ -19,7 +19,8 @@ enum TokenGroup {
     _punctuation
 };
 
-enum TokenCode {
+enum class TokenCode {
+    __GROUP_A,
     _eof,
     _none,
     _ident,
@@ -80,6 +81,9 @@ enum TokenCode {
     _semi,     // ;
     _tilde,    // ~
     _hash,     // #
+    __GROUP_FINAL,
+
+    __error // something wrong has happened
 };
 
 
@@ -134,6 +138,7 @@ inline string tokencode_to_string(TokenCode code){
         case TokenCode::_semi: return "<semi>";
         case TokenCode::_tilde: return "<tilde>";
         case TokenCode::_hash: return "<hash>";
+        case TokenCode::__error: return "<error>";
         default: return "<unknown>";
     };
 };
