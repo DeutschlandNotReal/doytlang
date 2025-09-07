@@ -7,11 +7,12 @@
 #include <string>
 #include <chrono>
 #include <optional>
-#include "../include/lexer.hpp"
+#include "lexer.hpp"
 
 const char *authors[] = {
     "DeutschlandNotReal",
-    "sk337",
+    "sk337 <me@pk3.zip>",
+    "fhudufin",
     nullptr,
 };
 
@@ -35,26 +36,50 @@ void display_tokens(std::vector<Token *> toks)
         }
     };
 };
+
+void printhelp()
+{
+    cerr << "DoytLang CLI\nAuthors: ";
+    for (int i = 0; authors[i] != nullptr; i++)
+    {
+        cerr << authors[i];
+        if (authors[i + 1] != nullptr)
+        {
+            cerr << ", ";
+        };
+    };
+    cerr << "\nFlags:\n -d : debug messages\n -p : print tokens\n -h : help\n";
+}
+
 int main(int argc, char *argv[])
 {
     if (argc < 2)
     {
         cerr << "\nMust input a filepath!\n";
+        printhelp();
         return 1;
     };
 
     bool debug_msg = false;
     bool print_tok = false;
-    if (argc > 2){
-        for (int argi = 2; argi<argc; argi++){
-            string sarg = string(argv[argi]);
-            if(sarg=="disp"){print_tok = true; continue;};
-            if(sarg=="step"){debug_msg = true; continue;};
-            cerr << "\n invalid arguement " << argi << " (" << sarg << ")";
+    string filepath;
+    if (argc > 1){
+        for (int argi = 1; argi<argc; argi++){
+            switch (argv[argi][0]){
+                case '-':
+                    switch (*(argv[argi]+1)){
+                        case 'd': debug_msg = true; break;
+                        case 'p': print_tok = true; break;
+                        case 'h':
+                            printhelp();
+                            return 0;
+                        default: cerr << "Unknown flag '" << argv[argi] << "'!\n"; return 1;
+                    }; break;
+                default: filepath = argv[argi]; break;
+            };
         };
     };
 
-    const string filepath = argv[1];
     auto rawsrc = Source::construct(filepath);
 
     if (!rawsrc.has_value())

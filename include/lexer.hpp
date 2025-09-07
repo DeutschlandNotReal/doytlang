@@ -17,14 +17,19 @@ enum TokenCode {
 
     // Keywords
     _kw_exit,
+    _kw_func,
+    _kw_let,
 
     // Literals
     _litstr,
     _litfloat,
+    _litdouble,
     _litint,
     _litbool,
 
     // Punctuation
+    _concat, 
+
     _brace1,   // {
     _brace2,   // }
     _bracket1, // [
@@ -66,13 +71,16 @@ enum TokenCode {
     _dot,      // .
     _colon,    // :
     _semi,     // ;
+    _tilde,    // ~
     _hash,     // #
 };
+
+typedef variant<string, float, double, int> PayloadVariant;
 
 struct Token {
     TokenCode code;
     string lexeme;
-    variant<string, float, int> payload;
+    PayloadVariant payload;
 
     int line;
     int column;
@@ -86,17 +94,24 @@ struct SourceContext {
 };
 
 struct Lexer {
-    vector<Token*> stream;
+    vector<Token*> stream; // why is this a stream of POINTERS?
     int index;
     int tokencount;
-    [[nodiscard]] inline optional<Token*> peek(int ahead = 0) const{
-        return (index+ahead>tokencount) ? nullptr : stream[index+ahead];
-    };
+    [[nodiscard]] inline optional<Token*> peek(int ahead = 0) const {
+        return (index + ahead >= tokencount) ? nullptr : stream[index + ahead]; 
+    }
 
-    inline Token* consume(){return stream[index++];};
+    inline Token* consume() { return stream[index++]; }
 
-    inline void emit(Token* tok){tok->index = tokencount++; stream.push_back(tok);};
-};
+    inline void emit(Token* tok) { tok->index = tokencount++; stream.push_back(tok); }
+
+    inline bool neof() const { return index < tokencount; }
+
+    inline bool isahead(TokenCode code, int ahead = 0) const {
+        return neof() ? peek(ahead).value()->code == code : false;
+    }
+    // because uh uh
+}; //wtf why are we doing using namespace std
 
 struct Source {
     string src;
@@ -194,6 +209,7 @@ inline optional<Token*> match_punctuation(Source* src){
         case '/': monotok(TokenCode::_fslash);
         case '%': monotok(TokenCode::_perc);
         case '#': monotok(TokenCode::_hash);
+        case '~': monotok(TokenCode::_tilde);
 
         case '.': monotok(TokenCode::_dot);
         case ',': monotok(TokenCode::_comma);
@@ -210,8 +226,23 @@ inline optional<Token*> match_punctuation(Source* src){
     };
 };
 
+inline char match_escchar(char a){
+    switch(a){
+        case '0':  return '\0';
+        case 'n':  return '\n';
+        case 't':  return '\t';
+        case '\'': return '\'';
+        case '\\': return '\\';
+        case 'r':  return '\r';
+        case '{': return '}';
+        default:   return 'n';
+    };
+};
+
 unordered_map<string, TokenCode> keywordmap {
-    {"exit", TokenCode::_kw_exit}
+    {"exit", TokenCode::_kw_exit},
+    {"func", TokenCode::_kw_func},
+    {"let",  TokenCode::_kw_let},
 };
 
 inline string vischar(char c){
@@ -233,23 +264,48 @@ inline Lexer *tokenize(Source* src, bool debug_msg){
     #define advnext  c = src->advancenext()
     #define emit(v) lex->emit(v);if(debug_msg){cout<<"\nEmitted token w/ lexeme: "<<v->lexeme;}
 
+    bool awaitconcat = 0;
+
     int lastindex = -1;
     do{
         c=src->peek();
         if(debug_msg){cout<<"\nProccessing: "<<vischar(c);};
         if (isspace(c)){advnext; continue;};
 
+        // Comment match /* until \n or eof, or /*()
+        if (c == '/' && src->peek(1) == '*'){
+            if(debug_msg){cout<<"\nDetected comment start.";}
+            src->advance(); // consumes /
+            src->advance(); // consumes *
+
+            char breakat = '\n';
+            if(src->peek() == '('){breakat = ')'; src->advance();};
+
+            while (1){
+                advnext;
+                if(c==breakat || c=='\0'){break;};
+            };
+            if(c==')'){src->advance();}; // consumes final ) if needed
+            if(debug_msg){cout<<"\nDetected comment end.";}
+            continue;
+        };
+
         // Punctuation match (all 1-2 character symbols)
         auto ptok = match_punctuation(src);
-        if(ptok.has_value()){
+        if(ptok.has_value() && !(c == '{' && awaitconcat)){
             if(debug_msg){cout<<"\nMatched punctuation: "<<ptok.value()->lexeme;};
             emit(ptok.value()); continue;
         } else if (debug_msg){cout<<"\nFailed to match to punc";};
 
-        // String literal match
-        if(c=='\''){
+        // String match
+        if(c=='\'' || (c == '}' && awaitconcat)){
             if(debug_msg){{cout<<"\nDetected string literal start.";}};
-            c = src->advancenext(); // consumes initial '
+            if (c=='}' && awaitconcat){
+                awaitconcat = 0;
+                emit(src->newtoken(Code::_concat, "concat"));
+            };
+
+            c = src->advancenext(); // consumes initial ' or }
             auto strtok = src->newtoken(TokenCode::_litstr, nullopt);
             while (1){
                 if(c=='\0'){
@@ -257,13 +313,31 @@ inline Lexer *tokenize(Source* src, bool debug_msg){
                     throw runtime_error("\nUnterminated string!");
                 } else if (c == '\''){src->advance(); break;};
 
-                strtok->lexeme.push_back(c);
+                if (c == '\\'){
+                    char cnext = src->peek(1);
+                    char match = match_escchar(cnext); // n if no match
+                    
+                    if (match != 'n'){
+                        if(debug_msg){cout << "\nEscape char match " << match;};
+
+                        strtok->lexeme.push_back(match);
+                        advnext; // consumes escape character
+                    };
+                } else if (c == '{') {
+                    // Begins concatination chain ({}) (breaks at \{, handled by escape char handler below)
+                    if(debug_msg){cout << "\nConcat check!";}
+                    
+                    emit(strtok);
+                    emit(src->newtoken(TokenCode::_concat, "concat"));
+                    continue;
+                } else { strtok->lexeme.push_back(c);};
                 advnext;
             };
             
             emit(strtok); continue;
         };
 
+        // Number Match
         if (isdigit(c)){
             if(debug_msg){cout << "\nDetected number literal start.";};
             auto numtok = src->newtoken(TokenCode::_litint, nullopt);
@@ -274,6 +348,24 @@ inline Lexer *tokenize(Source* src, bool debug_msg){
                 numtok->lexeme.push_back(c);
                 advnext;
             };
+
+            char final = numtok->lexeme.back();
+
+            if (final == 'f' || final == 'F'){
+                numtok->lexeme.pop_back(); // remove f
+                numtok->code = TokenCode::_litfloat;
+                try{numtok->payload = stof(numtok->lexeme);}
+                catch(const invalid_argument &e){throw runtime_error("\nMalformed float!");}
+                catch(const out_of_range &e){throw runtime_error("\nFloat out of range!");};
+                emit(numtok); continue;
+            } else if (final == 'd' || final == 'D'){
+                numtok->lexeme.pop_back(); // remove d
+                numtok->code = TokenCode::_litdouble;
+                try{numtok->payload = stod(numtok->lexeme);}
+                catch(const invalid_argument &e){throw runtime_error("\nMalformed double!");}
+                catch(const out_of_range &e){throw runtime_error("\nDouble out of range!");};
+                emit(numtok); continue;
+            };
             try{numtok->payload = stoi(numtok->lexeme);}
             catch(...){ // Is an invalid int
                 try{numtok->code = TokenCode::_litfloat; numtok->payload = stof(numtok->lexeme);}
@@ -283,11 +375,12 @@ inline Lexer *tokenize(Source* src, bool debug_msg){
             emit(numtok); continue;
         };
         
-        if (isalpha(c)){
+        // Identifier Match
+        if (isalpha(c) || c == '_'){
             if(debug_msg){cout << "\nDetected identifier start.";};
             auto identok = src->newtoken(TokenCode::_ident, nullopt);
             while (1){
-                if(c == '\0' || !isalnum(c)){break;};
+                if(c == '\0' || (!isalnum(c) && c != '_')){break;};
                 identok->lexeme.push_back(c);
                 advnext;
             };
