@@ -7,12 +7,12 @@
 #include <string>
 #include <chrono>
 #include <optional>
-#include <lexer.hpp>
+#include "lexer.hpp"
 
 const char *authors[] = {
     "DeutschlandNotReal",
-    "sk337",
-    "fhudfin",
+    "sk337 <me@pk3.zip>",
+    "fhudufin",
     nullptr,
 };
 
@@ -67,7 +67,7 @@ int main(int argc, char *argv[])
         for (int argi = 1; argi<argc; argi++){
             switch (argv[argi][0]){
                 case '-':
-                    switch (argv[argi][1]){
+                    switch (*(argv[argi]+1)){
                         case 'd': debug_msg = true; break;
                         case 'p': print_tok = true; break;
                         case 'h':
