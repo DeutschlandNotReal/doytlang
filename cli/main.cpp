@@ -32,8 +32,8 @@ int main(int argc, char *argv[])
             switch (argv[argi][0]){
                 case '-':
                     switch (*(argv[argi]+1)){
-                        case 'd': flags |= 0b0010; break;
-                        case 'p': flags |= 0b0001; break;
+                        case 'd': flags |= 0b0001; break;
+                        case 'p': flags |= 0b0010; break;
                         case 'h':
                             disp_help();
                             return 0;
@@ -57,22 +57,21 @@ int main(int argc, char *argv[])
 
     cout << "\nGenerated: " << lexctx.tok_size << " Tokens!";
 
-    if (flags & 0b0001){
-        cout << '\n';
+    if (flags & 0b0010){
         int i = 0;
-        int lastline = 1;
+        int lastline = 0;
         for (size_t t_id = 0; t_id < lexctx.tok_size; t_id++){
             i+=1;
-            Token tok = lexctx.tokstream[t_id];
+            Token &tok = *lexctx.tokstream[t_id];
             if (tok.line != lastline){
                 lastline = tok.line;
-                cout << "\n";
+                cout << string("\n\x1b[38;5;226m[") + to_string(lastline) + "]\033[0m ";
             }
 
             if (i % 2 == 0){
-                cout << "\033[30m" << t_str(tok) << "\033[0m ";
+                cout << "\x1b[38;5;8m" << t_str(tok) << "\033[0m ";
             } else {
-                cout << "\033[31m" << t_str(tok) << "\033[0m ";
+                cout << "\x1b[38;5;7m" << t_str(tok) << "\033[0m ";
             }
         }
         cout << '\n';

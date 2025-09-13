@@ -95,9 +95,15 @@ struct LexContext{
     size_t src_size;
     int line;
 
-    vector<Token> tokstream;
+    vector<Token*> tokstream;
     size_t tok_index;
     size_t tok_size;
+
+    ~LexContext(){
+        for (auto &t : tokstream){
+            delete t;
+        }
+    }
     
     static LexContext from_source(string source){
         return {source, 0, source.size(), 1, {}, 0, 0};
@@ -117,12 +123,12 @@ struct LexContext{
         return {bufstr, 0, bufstr.size(), 1, {}, 0, 0};
     }
 
-    [[nodiscard]] inline Token tpeek(int delta = 0){
-        return tokstream[tok_index+delta];
+    [[nodiscard]] inline Token& tpeek(int delta = 0){
+        return *(tokstream[tok_index+delta]);
     }
-    inline Token tconsume(){return tokstream[tok_index++];}
-    inline Token tnext(){tok_index++; return tokstream[tok_index];}
-    inline Token tmove(int delta){tok_index+=delta; return tokstream[tok_index];}
+    inline Token& tconsume(){return *(tokstream[tok_index++]);}
+    inline Token& tnext(){tok_index++; return *(tokstream[tok_index]);}
+    inline Token& tmove(int delta){tok_index+=delta; return *(tokstream[tok_index]);}
 
     [[nodiscard]] inline char cpeek(int delta = 0){
         int tpoint = src_index + delta;
@@ -132,10 +138,9 @@ struct LexContext{
     inline char cconsume(){if(src[src_index] =='\n'){line++;} if(src_index>=src_size){return '\0';}; return src[src_index++];}
     inline char cnext()   {if(src[src_index] =='\n'){line++;} if(src_index>=src_size){return '\0';}; src_index++; return src[src_index];}
     
-    inline void emit(Token tok){
+    inline void emit(Token* tok){
         tokstream.push_back(tok); tok_size++;
     };
-
     
     void throw_err(const string& message){
         throw runtime_error(
