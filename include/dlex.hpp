@@ -75,16 +75,17 @@ inline string t_str(Token &t){
         case TK_GT2: return">>"; case TK_LT2: return"<<"; case TK_GTEQ: return">=";case TK_LTEQ: return"<=";
         case TK_DOT: return"."; case TK_COMMA: return","; case TK_SEMI: return";"; case TK_COLON: return":";
 
-        case TK_FN: return"FUNC"; case TK_RET: return"RETURN"; case TK_GET: return"GET"; case TK_IF: return"IF";
+        case TK_FN: return"FUNC"; case TK_RET: return"RETURN"; case TK_GET: return"GET"; case TK_IF: return"IF"; case TK_ELSE: return"ELSE";
 
         case TK_EOF: return"EOF"; case TK_INVALID: return"INVALID";
+    
         
         case TK_LIT_BOOL: return "BOOL:" + t.pl.t_bul ? "true" : "false"; 
         case TK_LIT_INT: return "INT:" + to_string(t.pl.t_lng);
         case TK_LIT_DOUBLE: return "DOUBLE:" + to_string(t.pl.t_dub); 
         case TK_LIT_FLOAT: return "FLOAT:" + to_string(t.pl.t_flt);
-        case TK_LIT_STR: return "STR\"" + *(t.pl.t_str) + "\"";
-        case TK_IDENT: return "IDENT\"" + *(t.pl.t_str) + "\"";
+        case TK_LIT_STR: return "STR'" + *(t.pl.t_str) + '\'';
+        case TK_IDENT: return "IDENT'" + *(t.pl.t_str) + '\'';
         default: return "TCODE " + to_string(t.type);
     };
 };

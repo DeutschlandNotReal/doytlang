@@ -65,7 +65,7 @@ int main(int argc, char *argv[])
             Token &tok = *lexctx.tokstream[t_id];
             if (tok.line != lastline){
                 lastline = tok.line;
-                cout << string("\n\x1b[38;5;226m[") + to_string(lastline) + "]\033[0m ";
+                cout << "\n\x1b[38;5;226m[" + to_string(lastline) + "]\033[0m ";
             }
 
             if (i % 2 == 0){
