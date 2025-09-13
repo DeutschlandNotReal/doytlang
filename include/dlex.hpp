@@ -50,6 +50,12 @@ struct Token {
     TokCode type;
     int line;
     TokPl pl;
+
+    ~Token(){
+        if (type == TK_IDENT || type == TK_LIT_STR){
+            delete pl.t_str;
+        }
+    };
 };
 
 inline string t_str(Token &t){
