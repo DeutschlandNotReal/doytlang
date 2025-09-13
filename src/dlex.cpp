@@ -135,7 +135,7 @@ void token_lctx(LexContext& lctx, int debug_flags){
         // Number Literals
         if (isdigit(_c) || (_c == '.' && isdigit(lctx.cpeek(1)))){
             string lexm;
-            while (isalnum(_c) || _c == '.' || _c == '_'){
+            while (isalnum(_c) || _c == '.' || _c == '_' || (_c == '-' && (lexm.back() == 'e' || lexm.back() == 'E'))){
                 if (_c != '_'){lexm.push_back(_c);}
                 next;
             }
