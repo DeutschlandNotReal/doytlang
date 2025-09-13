@@ -2,12 +2,13 @@
 
 #define debug true
 
-#include "lexer.hpp"
+#include "dlex.hpp"
+
 
 #include <vector>
 #include <string>
 
-
+using namespace std;
 
 // Operations, etc.
 enum NodeGroup {
@@ -42,13 +43,13 @@ enum NodePayload {
 };
 
 struct ASTNode {
-    std::vector<ASTNode*> children;
+    vector<ASTNode*> children;
     ASTNode* parent;
 
     NodeGroup group;
     NodePayload payload_type;
 
-    PayloadVariant payload;
+    TokPl payload;
 
     ~ASTNode() {
         for (ASTNode* child : children) {
@@ -56,8 +57,8 @@ struct ASTNode {
         }
     };
     
-    ASTNode(ASTNode* parent, NodeGroup group, NodePayload payload_type, PayloadVariant payload) {
-        children = std::vector<ASTNode*>();
+    ASTNode(ASTNode* parent, NodeGroup group, NodePayload payload_type, TokPl payload) {
+        children = vector<ASTNode*>();
         parent = parent;
         group = group;
         payload_type = payload_type;
@@ -66,63 +67,73 @@ struct ASTNode {
 };
 
 bool is_atom(Token& token) {
-    return token.code == TokenCode::_litfloat;
+    return 
+        token.type == TK_LIT_FLOAT ||
+        token.type == TK_LIT_DOUBLE ||
+        token.type == TK_LIT_BOOL ||
+        token.type == TK_LIT_STR ||
+        token.type == TK_LIT_INT ||
+        token.type == TK_IDENT;
 }
 
 bool get_op_payload(Token& op) {
-    switch (op.code) {
-        case TokenCode::_plus:  return NodePayload::_add;
-        case TokenCode::_minus: return NodePayload::_sub;
-        case TokenCode::_star:  return NodePayload::_mul;
-        case TokenCode::_fslash:return NodePayload::_div;
+    switch (op.type) {
+        case TK_PLUS:  return NodePayload::_add;
+        case TK_MINUS: return NodePayload::_sub;
+        case TK_STAR:  return NodePayload::_mul;
+        case TK_SLASH: return NodePayload::_div;
+        case TK_PERC:  return NodePayload::_mod;
+        case TK_STAR2: return NodePayload::_pow;
         default: return NodePayload::_error;
     }
 }
 
 // parse_expression should probably handle garbage tokens
 pair<float,float> binding_power(Token& op) {
-    switch(op.code) {
-        case TokenCode::_plus:
-        case TokenCode::_minus: return {1.0, 1.1};
-        case TokenCode::_perc:
-        case TokenCode::_star:
-        case TokenCode::_fslash:return {2.0, 2};
+    switch(op.type) {
+        case TK_PLUS:
+        case TK_MINUS: return {1.0, 1.1};
+        case TK_PERC:
+        case TK_STAR:
+        case TK_SLASH: return {2.0, 2};
     }
 } 
-// 1984 alright I'll push this and then we can disconnect
 
-// parse like (a * b / 5)
-ASTNode* parse_expression(Lexer& lex, float min_bp = 0) {
-    // minor skidding action..
-    // praying that this works.. im off to sleep -fudu
-   // lsp lagging :( 
-    optional<Token> op_lhs_token = lex.peek();
-    if (!op_lhs_token.has_value()) {
+ASTNode* parse_expression(LexContext lex, float min_bp = 0) {
+   #define peek       lex._t;
+   #define consume    lex.step();
+   #define ahead      lex._th;
+   #define tok_oob(t) t.type == TK_INVALID || t.type == TK_EOF
+
+    Token lhs_token = peek;
+    if (lhs_token.type == TK_INVALID) {
         throw runtime_error("Tried to parse past EOF");
     }
-    Token lhs_token = op_lhs_token;
+    
     if (!is_atom(lhs_token)) {
         throw runtime_error("Expected float literal when parsing expression");
     }
+
     ASTNode* lhs = new ASTNode(
         nullptr,
         NodeGroup::_atom,
         NodePayload::_litfloat,
-        get<float>(lhs_token.payload)
+        lhs_token.payload
     );
+
     while (1) {
-        Token op = lex.peek().value_or(nullptr);
-        if (op.code == TokenCode::_semi) {
+        Token op = peek;
+        if (op.type == TK_SEMI) {
             break;
         }
-        if (!op) {
+        if (tok_oob(op)) {
             throw runtime_error("Reached EOF while parsing expression");
         }
         if (get_op_payload(op) == NodePayload::_error) {
             throw runtime_error("Expected valid operator while parsing expression");
         }
 
-        lex.consume();
+        consume;
 
         auto [lbp, rbp] = binding_power(op);
         if (lbp < min_bp) {
@@ -132,20 +143,14 @@ ASTNode* parse_expression(Lexer& lex, float min_bp = 0) {
         lhs = new ASTNode(
             nullptr,
             NodeGroup::_operation,
-            get_op_payload(*op),
-            get<float>(lhs_token->payload),
+            get_op_payload(op),
+            lhs_token.payload
             {lhs, rhs}
         );
     }
     return lhs;
 }
-// should we have semicolons?
-// maybe, they are tokens rn _semi
 
-// yeah maybe to end an expression
-// semicolons to end expression
-
-// 😨
-ASTNode* parse_whole(Lexer &lex) {
+ASTNode* parse_whole(LexContext lex) {
 
 }
