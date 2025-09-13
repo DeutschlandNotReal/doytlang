@@ -171,7 +171,7 @@ void token_lctx(LexContext& lctx, int debug_flags){
                         auto lltok = new Token{TK_LIT_INT, lctx.line}; lltok->pl.t_lng = val_ll.value();
                         lctx.emit(lltok);
                         continue;
-                    } lctx.throw_err("Could not cast to int.");
+                    } lctx.throw_err("Malformed int.");
                 }
                 case 2:{
                     auto val_f = interp_flt(lexm);
@@ -179,7 +179,7 @@ void token_lctx(LexContext& lctx, int debug_flags){
                         auto ftok = new Token{TK_LIT_FLOAT, lctx.line}; ftok->pl.t_flt = val_f.value();
                         lctx.emit(ftok);
                         continue;
-                    } lctx.throw_err("Could not cast to float.");
+                    } lctx.throw_err("Malformed float.");
                 }
                 case 3:{
                     auto val_d = interp_dub(lexm);
@@ -187,7 +187,7 @@ void token_lctx(LexContext& lctx, int debug_flags){
                         auto dtok = new Token{TK_LIT_DOUBLE, lctx.line}; dtok->pl.t_dub = val_d.value();
                         lctx.emit(dtok);
                         continue;
-                    } lctx.throw_err("Could not cast to double.");
+                    } lctx.throw_err("Malformed Double.");
                 }
             }
 

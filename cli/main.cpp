@@ -68,7 +68,13 @@ int main(int argc, char *argv[])
                 cout << "\n\x1b[38;5;226m[" + to_string(lastline) + "]\033[0m ";
             }
 
-            if (i % 2 == 0){
+            if (tok.type == TK_EOF){
+                cout << "\x1b[38;5;203m" << "EOF" << "\033[0m ";
+            } else if (tok.type == TK_EMPTY){
+                cout << "\x1b[38;5;68m" << "EMPTY" << "\033[0m ";
+            } else if (tok.type == TK_INVALID){
+                cout << "\x1b[38;5;88m" << "INVALID" << "\033[0m ";
+            } else if (i % 2 == 0){
                 cout << "\x1b[38;5;8m" << t_str(tok) << "\033[0m ";
             } else {
                 cout << "\x1b[38;5;7m" << t_str(tok) << "\033[0m ";

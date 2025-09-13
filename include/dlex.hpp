@@ -145,7 +145,7 @@ struct LexContext{
     
     void throw_err(const string& message){
         throw runtime_error(
-            "\n\033[1;38;2;255;0;0mFatal Error at line " + to_string(line) + ": " + message + "\033[0m"
+            "\n\033[1;38;2;255;0;0mError at line " + to_string(line) + ": " + message + "\033[0m"
         );
     }
 
