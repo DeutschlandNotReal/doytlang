@@ -1,6 +1,9 @@
 test/
 main.exe
-.vscode
 build/
 cmake*
 .idea/
+.vscode/*
+!.vscode/c_cpp_properties.json
+!.vscode/settings.json
+!.vscode/tasks.json

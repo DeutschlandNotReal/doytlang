@@ -1,0 +1,21 @@
+{
+  "configurations": [
+    {
+      "name": "Win32",
+      "includePath": [
+        "${workspaceFolder}/include",
+        "${workspaceFolder}/src",
+        "${workspaceFolder}/cli",
+        "${workspaceFolder}/**",
+        "C:/msys64/mingw64/include",
+        "C:/msys64/mingw64/include/fmt"
+      ],
+      "defines": [],
+      "compilerPath": "C:/msys64/mingw64/bin/g++.exe",
+      "cStandard": "c17",
+      "cppStandard": "c++20",
+      "intelliSenseMode": "windows-gcc-x64"
+    }
+  ],
+  "version": 4
+}

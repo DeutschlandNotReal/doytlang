@@ -7,6 +7,8 @@
 #include <chrono>
 #include <optional>
 #include <charconv>
+#include <iomanip>
+#include <fmt/core.h>
 #include "../include/dlex.hpp"
 #include "../src/dlex.cpp"
 
@@ -47,15 +49,36 @@ int main(int argc, char *argv[])
     auto lexctx = LexContext::from_filepath(filepath);
 
     cout << "\nReading: " << filepath << ", Source Size: " << lexctx.src_size;
-    try{token_lctx(lexctx, flags);}
+
+    bool success = true;
+    auto bench_start = chrono::high_resolution_clock::now();
+    try{
+        token_lctx(lexctx, flags);
+    }
     catch(runtime_error &e){
+        success = false;
         cerr << e.what();
     }
     catch(exception &e){
+        success = false;
         cerr << "\nTokenizer unexpected error: " << e.what();
     };
+    auto bench_end = chrono::high_resolution_clock::now();
 
-    cout << "\nGenerated: " << lexctx.tok_size << " Tokens!";
+    double duration = chrono::duration_cast<chrono::microseconds>(bench_end - bench_start).count();
+
+    if (!success){
+        cout << "\n\033[1;38;2;255;165;0mFailed to fully tokenize!\033[0m";
+    }
+    cout << '\n' << lexctx.tok_size << " Tokens generated!";
+    cout << fmt::format(
+        " Took: {:.3f}ms ({:.3f}ns/token, {:.3f}ns/char) Characters / Token: {:.3f}", 
+        duration / 1000.0, 
+        duration / lexctx.tok_size * 1000, 
+        duration / lexctx.src_size * 1000,
+        static_cast<double>(lexctx.src_size) / lexctx.tok_size
+    );
+
 
     if (flags & 0b0010){
         int i = 0;
@@ -67,7 +90,6 @@ int main(int argc, char *argv[])
                 lastline = tok.line;
                 cout << "\n\x1b[38;5;226m[" + to_string(lastline) + "]\033[0m ";
             }
-
             if (tok.type == TK_EOF){
                 cout << "\x1b[38;5;203m" << "EOF" << "\033[0m ";
             } else if (tok.type == TK_EMPTY){

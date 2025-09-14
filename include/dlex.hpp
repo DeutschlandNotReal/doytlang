@@ -119,7 +119,7 @@ struct LexContext{
         stringstream buf;
         buf << file.rdbuf();
         file.close();
-
+        
         string bufstr = buf.str();
         return {bufstr, 0, bufstr.size(), 1, {}, 0, 0};
     }
