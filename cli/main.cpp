@@ -52,6 +52,12 @@ int main(int argc, char *argv[])
 
     bool success = true;
     auto bench_start = chrono::high_resolution_clock::now();
+
+    if (lexctx.src_size == 0){
+        cout << "\n\033[1;38;2;255;165;0mCan't interpret empty source!\033[0m";
+        return 1;
+    };
+
     try{
         token_lctx(lexctx, flags);
     }

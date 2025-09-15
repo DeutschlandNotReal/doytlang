@@ -17,7 +17,7 @@ inline TokCode match_punct(char a, char b, LexContext& context){
         case '+': return TK_PLUS; case '-': return TK_MINUS; case '/': return TK_SLASH;
         case '%': return TK_PERC; case '#': return TK_HASH; case '?': return TK_QWE;
         case '.': return TK_DOT; case ',': return TK_COMMA; case ';': return TK_SEMI; case ':': return TK_COLON;
-        case '^': return TK_HAT;
+        case '^': return TK_HAT; case '~': return TK_TILDE;
 
         case '&':switch(b){
             case '&': retnext (TK_AND2); default: return TK_AND;
@@ -103,7 +103,7 @@ void token_lctx(LexContext& lctx, int debug_flags){
     while (1){
         _c = lctx.cpeek();
         if (dmsg){cerr << "\nConstructing from " << vischar(_c) << " at " << to_string(lctx.src_index);}
-        if (_c == '\0'){lctx.emit(new Token{TK_EOF, lctx.line}); break;};
+        if (_c == '\0'){lctx.emitfc(TK_EOF); break;};
 
         if (lctx.src_index + 1 <= char_maxext){
             // Tokenizer not designed to roll back on characters.
@@ -154,13 +154,13 @@ void token_lctx(LexContext& lctx, int debug_flags){
                 case 0:{
                     auto val_ll = interp_llong(lexm);
                     if (val_ll.has_value()){
-                        auto lltok = new Token{TK_LIT_INT, lctx.line}; lltok->pl.t_lng = val_ll.value();
+                        auto lltok = Token{TK_LIT_INT, lctx.line}; lltok.pl.t_lng = val_ll.value();
                         lctx.emit(lltok);
                         continue;
                     }
                     auto val_f = interp_flt(lexm);
                     if (val_f.has_value()){
-                        auto ftok = new Token{TK_LIT_FLOAT, lctx.line}; ftok->pl.t_flt = val_f.value();
+                        auto ftok = Token{TK_LIT_FLOAT, lctx.line}; ftok.pl.t_flt = val_f.value();
                         lctx.emit(ftok);
                         continue;
                     } lctx.throw_err("Malformed number.");
@@ -168,7 +168,7 @@ void token_lctx(LexContext& lctx, int debug_flags){
                 case 1:{
                     auto val_ll = interp_llong(lexm);
                     if (val_ll.has_value()){
-                        auto lltok = new Token{TK_LIT_INT, lctx.line}; lltok->pl.t_lng = val_ll.value();
+                        auto lltok = Token{TK_LIT_INT, lctx.line}; lltok.pl.t_lng = val_ll.value();
                         lctx.emit(lltok);
                         continue;
                     } lctx.throw_err("Malformed int.");
@@ -176,7 +176,7 @@ void token_lctx(LexContext& lctx, int debug_flags){
                 case 2:{
                     auto val_f = interp_flt(lexm);
                     if (val_f.has_value()){
-                        auto ftok = new Token{TK_LIT_FLOAT, lctx.line}; ftok->pl.t_flt = val_f.value();
+                        auto ftok = Token{TK_LIT_FLOAT, lctx.line}; ftok.pl.t_flt = val_f.value();
                         lctx.emit(ftok);
                         continue;
                     } lctx.throw_err("Malformed float.");
@@ -184,7 +184,7 @@ void token_lctx(LexContext& lctx, int debug_flags){
                 case 3:{
                     auto val_d = interp_dub(lexm);
                     if(val_d.has_value()){
-                        auto dtok = new Token{TK_LIT_DOUBLE, lctx.line}; dtok->pl.t_dub = val_d.value();
+                        auto dtok = Token{TK_LIT_DOUBLE, lctx.line}; dtok.pl.t_dub = val_d.value();
                         lctx.emit(dtok);
                         continue;
                     } lctx.throw_err("Malformed Double.");
@@ -199,7 +199,7 @@ void token_lctx(LexContext& lctx, int debug_flags){
         if (punctcode != TK_EMPTY){
             if (dmsg){cout << "\nMatched Punctuation!";}
             lctx.cnext();
-            lctx.emit(new Token{punctcode, lctx.line});
+            lctx.emitfc(punctcode);
             continue;
         }
 
@@ -213,8 +213,8 @@ void token_lctx(LexContext& lctx, int debug_flags){
             if (_c == '\0'){throw runtime_error("Unterminated string literal at line " + to_string(lctx.line));}
 
             lctx.cnext(); // consumes final quote
-            auto strtok = new Token{TK_LIT_STR, lctx.line};
-            strtok->pl.t_str = new string(lexm);
+            auto strtok = Token{TK_LIT_STR, lctx.line};
+            strtok.pl.t_str = lctx.arena.insert<string>(lexm);
             lctx.emit(strtok);
             continue;
         }
@@ -229,18 +229,18 @@ void token_lctx(LexContext& lctx, int debug_flags){
             };
 
             if (lexm == "false" || lexm == "true"){
-                auto booltok = new Token{TK_LIT_BOOL, lctx.line};
-                booltok->pl.t_bul = lexm == "true";
+                auto booltok = Token{TK_LIT_BOOL, lctx.line};
+                booltok.pl.t_bul = lexm == "true";
                 lctx.emit(booltok); continue;
             };
-            if(lexm == "if"){lctx.emit(new Token{TK_IF, lctx.line}); continue;}
-            if(lexm == "else"){lctx.emit(new Token{TK_ELSE, lctx.line}); continue;}
-            if(lexm == "func"){lctx.emit(new Token{TK_FN, lctx.line}); continue;}
-            if(lexm == "get"){lctx.emit(new Token{TK_GET, lctx.line}); continue;}
-            if(lexm == "return"){lctx.emit(new Token{TK_RET, lctx.line}); continue;}
+            if(lexm == "if"){lctx.emitfc(TK_IF); continue;}
+            if(lexm == "else"){lctx.emitfc(TK_ELSE); continue;}
+            if(lexm == "func"){lctx.emitfc(TK_FN); continue;}
+            if(lexm == "get"){lctx.emitfc(TK_GET); continue;}
+            if(lexm == "return"){lctx.emitfc(TK_RET); continue;}
 
-            auto idtok = new Token{TK_IDENT, lctx.line};
-            idtok->pl.t_str = new string(lexm);
+            auto idtok = Token{TK_IDENT, lctx.line};
+            idtok.pl.t_str = lctx.arena.insert<string>(lexm);
             lctx.emit(idtok); continue;
         }
         lctx.throw_err("Unmatched character " + vischar(_c) + " at " + to_string(lctx.src_index));  
