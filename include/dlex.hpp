@@ -102,7 +102,8 @@ struct LexContext{
     ~LexContext(){arena.~Arena();}
 
     static LexContext from_source(string source){
-        size_t psize = source.size() / 3.5;
+        size_t psize = source.size() / 3.5 * sizeof(Token);
+        psize = (psize < sizeof(Token)) ? sizeof(Token) : psize;
 
         return {source, 0, source.size(), 1, {}, 0, 0, Arena::create(psize)};
     }
@@ -118,7 +119,9 @@ struct LexContext{
         file.close();
         
         string bufstr = buf.str();
-        size_t psize = bufstr.size() / 3.5; // 3.5 characters / token seems to be the average
+        size_t psize = bufstr.size() / 3.5  * sizeof(Token); // 3.5 characters / token seems to be the average
+        
+        psize = (psize < sizeof(Token)) ? sizeof(Token) : psize;
         return {bufstr, 0, bufstr.size(), 1, {}, 0, 0, Arena::create(psize)};
     }
 
@@ -138,25 +141,36 @@ struct LexContext{
 
     [[nodiscard]] inline char cpeek(int delta = 0){
         int tpoint = src_index + delta;
-        return (tpoint < src_size && (tpoint >= 0)) ? src[src_index+delta] : '\0';
+        return ((tpoint < src_size) && (tpoint >= 0)) ? src[src_index+delta] : '\0';
     }
 
     inline char cconsume(){if(src[src_index] =='\n'){line++;} if(src_index>=src_size){return '\0';}; return src[src_index++];}
     inline char cnext()   {if(src[src_index] =='\n'){line++;} if(src_index>=src_size){return '\0';}; src_index++; return src[src_index];}
     
 
+    Token* alloc_token(const Token &tok){
+        void* ptr = arena.alloc(sizeof(tok));
+
+        return new (ptr) Token(tok);
+    }
+
+    string* alloc_string(const string &str){
+        char* buf = (char*)arena.alloc(str.size());
+        memcpy(buf, str.data(), str.size());
+        return new (arena.alloc(sizeof(string))) string(buf, str.size());
+    }
+
     inline void emit(Token& tok){
-        auto tok_ptr = arena.insert<Token>(tok);
-        tokstream.push_back(tok_ptr); tok_size++; 
+        tokstream.push_back(alloc_token(tok)); 
+        tok_size++;
     };
 
     inline void emitfc(const TokCode tc){
-        auto tok_ptr = arena.insert<Token>(Token(tc, line));
-        tokstream.push_back(tok_ptr); tok_size++;
+        tokstream.push_back(alloc_token(Token{tc, line}));
+        tok_size++;
     };
 
 
-    
     void throw_err(const string& message){
         throw runtime_error(
             "\n\033[1;38;2;255;0;0mError at line " + to_string(line) + ": " + message + "\033[0m"

@@ -214,7 +214,7 @@ void token_lctx(LexContext& lctx, int debug_flags){
 
             lctx.cnext(); // consumes final quote
             auto strtok = Token{TK_LIT_STR, lctx.line};
-            strtok.pl.t_str = lctx.arena.insert<string>(lexm);
+            strtok.pl.t_str = lctx.alloc_string(lexm);
             lctx.emit(strtok);
             continue;
         }
@@ -240,7 +240,7 @@ void token_lctx(LexContext& lctx, int debug_flags){
             if(lexm == "return"){lctx.emitfc(TK_RET); continue;}
 
             auto idtok = Token{TK_IDENT, lctx.line};
-            idtok.pl.t_str = lctx.arena.insert<string>(lexm);
+            idtok.pl.t_str = lctx.alloc_string(lexm);
             lctx.emit(idtok); continue;
         }
         lctx.throw_err("Unmatched character " + vischar(_c) + " at " + to_string(lctx.src_index));  

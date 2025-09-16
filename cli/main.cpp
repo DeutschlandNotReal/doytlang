@@ -18,6 +18,11 @@ inline void disp_help(){
     cerr << "\nFlags:\n -d : debug messages\n -p : print tokens\n -h : help\n";
 }
 
+inline string format_bytes(size_t bytes){
+    if (bytes < 2048) return to_string(bytes) + "B";
+    return to_string(bytes / 1024) + "KB";
+};
+
 int main(int argc, char *argv[])
 {
     if (argc < 2)
@@ -76,6 +81,7 @@ int main(int argc, char *argv[])
     if (!success){
         cout << "\n\033[1;38;2;255;165;0mFailed to fully tokenize!\033[0m";
     }
+    
     cout << '\n' << lexctx.tok_size << " Tokens generated!";
     cout << fmt::format(
         " Took: {:.3f}ms ({:.3f}ns/token, {:.3f}ns/char) Characters / Token: {:.3f}", 
@@ -84,28 +90,41 @@ int main(int argc, char *argv[])
         duration / lexctx.src_size * 1000,
         static_cast<double>(lexctx.src_size) / lexctx.tok_size
     );
+    cout << "\nArena occupied " + to_string(lexctx.arena.blockindex) + " blocks with a total of " + format_bytes(lexctx.arena.total) + "!";
+    cout << "\ndlex Arena Data:";
+    for (int i = 0; i < lexctx.arena.blockindex; i++){
+        auto &block = lexctx.arena.blocks[i];
+        size_t capacity = block.end - block.start;
+        size_t used = block.cursor - block.start;
+        int perc = (used * 100) / (capacity);
+        cout << "\n  Block " + to_string(i) << ": " + format_bytes(used) + " / " + format_bytes(capacity) + " (" + to_string(perc) + "%)";
+    };
+
 
 
     if (flags & 0b0010){
         int i = 0;
         int lastline = 0;
+        ostringstream oss;
         for (size_t t_id = 0; t_id < lexctx.tok_size; t_id++){
             i+=1;
             Token &tok = *lexctx.tokstream[t_id];
+            if (tok.type == TK_EOF){
+                oss << "\x1b[38;5;203m" << "EOF" << "\033[0m ";
+            } else if (tok.type == TK_EMPTY){
+                oss << "\x1b[38;5;68m" << "EMPTY" << "\033[0m ";
+            } else if (tok.type == TK_INVALID){
+                oss << "\x1b[38;5;88m" << "INVALID" << "\033[0m ";
+            } else if (i % 2 == 0){
+                oss << "\x1b[38;5;8m" << t_str(tok) << "\033[0m ";
+            } else {
+                oss << "\x1b[38;5;7m" << t_str(tok) << "\033[0m ";
+            }
             if (tok.line != lastline){
                 lastline = tok.line;
-                cout << "\n\x1b[38;5;226m[" + to_string(lastline) + "]\033[0m ";
-            }
-            if (tok.type == TK_EOF){
-                cout << "\x1b[38;5;203m" << "EOF" << "\033[0m ";
-            } else if (tok.type == TK_EMPTY){
-                cout << "\x1b[38;5;68m" << "EMPTY" << "\033[0m ";
-            } else if (tok.type == TK_INVALID){
-                cout << "\x1b[38;5;88m" << "INVALID" << "\033[0m ";
-            } else if (i % 2 == 0){
-                cout << "\x1b[38;5;8m" << t_str(tok) << "\033[0m ";
-            } else {
-                cout << "\x1b[38;5;7m" << t_str(tok) << "\033[0m ";
+                cout << "\n\x1b[38;5;226m[" + to_string(lastline) + "]\033[0m " + oss.str();
+                oss.str("");
+                oss.clear();
             }
         }
         cout << '\n';
