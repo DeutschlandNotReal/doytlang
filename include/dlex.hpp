@@ -151,13 +151,13 @@ struct LexContext{
     inline char cnext()   {if(src[src_index] =='\n'){line++;} if(src_index>=src_size){return '\0';}; src_index++; return src[src_index];}
     
 
-    Token* alloc_token(const Token &tok){
+    inline Token* alloc_token(const Token &tok){
         void* ptr = arena.alloc(sizeof(tok));
 
         return new (ptr) Token(tok);
     }
 
-    string* alloc_string(const string &str){
+    inline string* alloc_string(const string &str){
         char* buf = (char*)arena.alloc(str.size());
         memcpy(buf, str.data(), str.size());
         return new (arena.alloc(sizeof(string))) string(buf, str.size());

@@ -84,12 +84,14 @@ int main(int argc, char *argv[])
     
     cout << '\n' << lexctx.tok_size << " Tokens generated!";
     cout << fmt::format(
-        " Took: {:.3f}ms ({:.3f}ns/token, {:.3f}ns/char) Characters / Token: {:.3f}", 
+        " Took: {:.3f}ms ({:.1f}ns/token, {:.1f}ns/char) Char/Tok: {:.2f}, B/Char: {:.2f}", 
         duration / 1000.0, 
         duration / lexctx.tok_size * 1000, 
         duration / lexctx.src_size * 1000,
-        static_cast<double>(lexctx.src_size) / lexctx.tok_size
+        static_cast<double>(lexctx.src_size) / lexctx.tok_size,
+        static_cast<double>(lexctx.arena.total) / lexctx.src_size
     );
+
     cout << "\nArena occupied " + to_string(lexctx.arena.blockindex) + " blocks with a total of " + format_bytes(lexctx.arena.total) + "!";
     cout << "\ndlex Arena Data:";
     for (int i = 0; i < lexctx.arena.blockindex; i++){
@@ -109,6 +111,12 @@ int main(int argc, char *argv[])
         for (size_t t_id = 0; t_id < lexctx.tok_size; t_id++){
             i+=1;
             Token &tok = *lexctx.tokstream[t_id];
+
+            if (tok.line != lastline){
+                lastline = tok.line; 
+                oss << "\n\x1b[38;5;226m[" + to_string(lastline) + "]\033[0m ";
+            }
+
             if (tok.type == TK_EOF){
                 oss << "\x1b[38;5;203m" << "EOF" << "\033[0m ";
             } else if (tok.type == TK_EMPTY){
@@ -120,14 +128,15 @@ int main(int argc, char *argv[])
             } else {
                 oss << "\x1b[38;5;7m" << t_str(tok) << "\033[0m ";
             }
-            if (tok.line != lastline){
-                lastline = tok.line;
-                cout << "\n\x1b[38;5;226m[" + to_string(lastline) + "]\033[0m " + oss.str();
-                oss.str("");
-                oss.clear();
+            
+            if (lastline % 5 == 0){
+                cout << oss.str();
+                oss.str(""); oss.clear();
             }
         }
-        cout << '\n';
+
+        oss << '\n';
+        cout << oss.str();
     }
 
 

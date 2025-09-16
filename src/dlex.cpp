@@ -2,6 +2,7 @@
 #include <optional>
 #include <iostream>
 #include <string>
+#include <unordered_map>
 
 using namespace std;
 
@@ -79,7 +80,6 @@ static string vischar(char _c){
         case ' ': return "<space>";
         case '\n': return "<newline>";
         case '\t': return "<tab>";
-        case '\r': return "<\\r>";
         default: return string(1, _c);
     };
 };
@@ -99,6 +99,9 @@ void token_lctx(LexContext& lctx, int debug_flags){
     // Impossible under normal circumstances to get more tokens than there are characters in the source + 1 (EOF t)
 
     #define lencheck if (lctx.tok_size + 1 > lctx.src_size){lctx.throw_err("Faulty Tokenstream size.");}
+
+    unordered_map<string, string*> lexeme_map;
+
 
     while (1){
         _c = lctx.cpeek();
@@ -214,7 +217,11 @@ void token_lctx(LexContext& lctx, int debug_flags){
 
             lctx.cnext(); // consumes final quote
             auto strtok = Token{TK_LIT_STR, lctx.line};
-            strtok.pl.t_str = lctx.alloc_string(lexm);
+            
+            string* cached = lexeme_map[lexm];
+            if (cached){strtok.pl.t_str = cached;}
+            else {auto ptr = lctx.alloc_string(lexm); lexeme_map[lexm] = ptr, strtok.pl.t_str = ptr;};
+
             lctx.emit(strtok);
             continue;
         }
@@ -240,7 +247,11 @@ void token_lctx(LexContext& lctx, int debug_flags){
             if(lexm == "return"){lctx.emitfc(TK_RET); continue;}
 
             auto idtok = Token{TK_IDENT, lctx.line};
-            idtok.pl.t_str = lctx.alloc_string(lexm);
+
+            string* cached = lexeme_map[lexm];
+            if (cached){idtok.pl.t_str = cached;}
+            else {auto ptr = lctx.alloc_string(lexm); lexeme_map[lexm] = ptr, idtok.pl.t_str = ptr;};
+
             lctx.emit(idtok); continue;
         }
         lctx.throw_err("Unmatched character " + vischar(_c) + " at " + to_string(lctx.src_index));  
