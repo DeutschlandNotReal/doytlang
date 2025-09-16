@@ -86,6 +86,10 @@ inline string t_str(Token &t){
     };
 };
 
+static size_t clamp (const size_t v, const size_t low, const size_t high){
+    return std::max(low, std::min(high, v));
+};
+
 struct LexContext{
     string src;
     size_t src_index;
@@ -105,7 +109,7 @@ struct LexContext{
         size_t psize = source.size() / 3.5 * sizeof(Token);
         psize = (psize < sizeof(Token)) ? sizeof(Token) : psize;
 
-        return {source, 0, source.size(), 1, {}, 0, 0, Arena::create(psize)};
+        return {source, 0, source.size(), 1, {}, 0, 0, Arena::create(clamp(psize, sizeof(Token) * 2, 1048576 * 2))};
     }
 
     static LexContext from_filepath(string filepath){
@@ -121,8 +125,7 @@ struct LexContext{
         string bufstr = buf.str();
         size_t psize = bufstr.size() / 3.5  * sizeof(Token); // 3.5 characters / token seems to be the average
         
-        psize = (psize < sizeof(Token)) ? sizeof(Token) : psize;
-        return {bufstr, 0, bufstr.size(), 1, {}, 0, 0, Arena::create(psize)};
+        return {bufstr, 0, bufstr.size(), 1, {}, 0, 0, Arena::create(clamp(psize, sizeof(Token) * 2, sizeof(Token) * 1048576 * 2))};
     }
 
     [[nodiscard]] inline Token& tpeek(int delta = 0){

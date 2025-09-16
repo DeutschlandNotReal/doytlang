@@ -7,7 +7,7 @@ struct ArenaBlock {char* start; char* cursor; char* end;};
 using namespace std;
 
 struct Arena {
-    ArenaBlock blocks[12];
+    ArenaBlock blocks[32];
     size_t blockindex;
     size_t basecap;
     size_t total;
@@ -21,7 +21,7 @@ struct Arena {
                 start,
                 start + capacity,
             };
-            if (blockindex > 11){
+            if (blockindex > 31){
                 throw std::runtime_error("Arena block-array exhausted...");
             }
             
