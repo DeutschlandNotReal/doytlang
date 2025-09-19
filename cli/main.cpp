@@ -95,7 +95,7 @@ int main(int argc, char *argv[])
     cout << "\nArena occupied " + to_string(lexctx.arena.blockindex) + " blocks with a total of " + format_bytes(lexctx.arena.total) + "!";
     cout << "\ndlex Arena Data:";
     for (int i = 0; i < lexctx.arena.blockindex; i++){
-        auto &block = lexctx.arena.blocks[i];
+        auto &block = lexctx.arena.blockset[i];
         size_t capacity = block.end - block.start;
         size_t used = block.cursor - block.start;
         int perc = (used * 100) / (capacity);

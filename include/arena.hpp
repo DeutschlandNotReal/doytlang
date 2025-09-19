@@ -7,7 +7,7 @@ struct ArenaBlock {char* start; char* cursor; char* end;};
 using namespace std;
 
 struct Arena {
-    ArenaBlock blocks[32];
+    vector<ArenaBlock> blockset;
     size_t blockindex;
     size_t basecap;
     size_t total;
@@ -21,13 +21,10 @@ struct Arena {
                 start,
                 start + capacity,
             };
-            if (blockindex > 31){
-                throw std::runtime_error("Arena block-array exhausted...");
-            }
             
             total += capacity;
-            blocks[blockindex] = block;
-            blockindex++;
+            blockset.push_back(block);
+            blockindex = blockset.size();
 
             return block;
         }
@@ -43,11 +40,11 @@ struct Arena {
         void* alloc(size_t size, size_t new_block_size = 0){
             if (new_block_size == 0) new_block_size = basecap;
 
-            if (blocks[blockindex-1].cursor + size > blocks[blockindex-1].end){
+            if (blockset[blockindex-1].cursor + size > blockset[blockindex-1].end){
                 new_block(new_block_size); 
             };
 
-            auto& curblock = blocks[blockindex - 1];
+            auto& curblock = blockset[blockindex - 1];
 
             void* cursor = curblock.cursor;
             curblock.cursor += size;
@@ -57,7 +54,7 @@ struct Arena {
 
         ~Arena(){
             for (int i = blockindex - 1; i >= 0; i--){
-                free(blocks[i].start);
+                free(blockset[i].start);
             };
         };
 };

@@ -86,8 +86,15 @@ inline string t_str(Token &t){
     };
 };
 
-static size_t clamp (const size_t v, const size_t low, const size_t high){
-    return std::max(low, std::min(high, v));
+
+inline static size_t predict_size(size_t charcount){
+    size_t size = charcount * 3.3;
+    size_t capacity = 128 * 1024;
+
+    if (size > (128 * 1024 * 15)){capacity = 128 * 1024 * 15;}
+    return size < sizeof(Token) ? sizeof(Token) : size > capacity ? capacity : size;
+    // The average is typically between 4-9.9 Bytes per Character
+    // 131072 : bytes in 128KB, range: 16B -> 128KB
 };
 
 struct LexContext{
@@ -101,31 +108,21 @@ struct LexContext{
     size_t tok_size;
     Arena  arena;
 
-
-
     ~LexContext(){arena.~Arena();}
 
     static LexContext from_source(string source){
-        size_t psize = source.size() / 3.5 * sizeof(Token);
-        psize = (psize < sizeof(Token)) ? sizeof(Token) : psize;
-
-        return {source, 0, source.size(), 1, {}, 0, 0, Arena::create(clamp(psize, sizeof(Token) * 2, 1048576 * 2))};
+        return {source, 0, source.size(), 1, {}, 0, 0, Arena::create(predict_size(source.size()))};
     }
 
     static LexContext from_filepath(string filepath){
         ifstream file(filepath);
-        if (!file.is_open()) {
-            throw runtime_error("Could not open file " + filepath);
-        }
+        if (!file.is_open()) { throw runtime_error("Could not open file " + filepath); }
 
-        stringstream buf;
-        buf << file.rdbuf();
+        stringstream buf; buf << file.rdbuf();
         file.close();
         
-        string bufstr = buf.str();
-        size_t psize = bufstr.size() / 3.5  * sizeof(Token); // 3.5 characters / token seems to be the average
-        
-        return {bufstr, 0, bufstr.size(), 1, {}, 0, 0, Arena::create(clamp(psize, sizeof(Token) * 2, sizeof(Token) * 1048576 * 2))};
+        string str = buf.str();
+        return {str, 0, str.size(), 1, {}, 0, 0, Arena::create(predict_size(str.size()))};
     }
 
     [[nodiscard]] inline Token& tpeek(int delta = 0){
@@ -145,6 +142,10 @@ struct LexContext{
     [[nodiscard]] inline char cpeek(int delta = 0){
         int tpoint = src_index + delta;
         return ((tpoint < src_size) && (tpoint >= 0)) ? src[src_index+delta] : '\0';
+    }
+
+    [[nodiscard]] inline pair<char, char> cpeek2(){
+        return {src[src_index], src_index == src_size ? '\0' : src[src_index+1]};
     }
 
     inline char cconsume(){if(src[src_index] =='\n'){line++;} if(src_index>=src_size){return '\0';}; return src[src_index++];}

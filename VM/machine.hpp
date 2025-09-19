@@ -1,6 +1,7 @@
 #pragma once
 #include <vector>
 #include <cstdint>
+#include <math.h>
 
 enum class Opcode: uint8_t {
     // Arithmetic

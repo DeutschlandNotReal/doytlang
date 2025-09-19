@@ -90,56 +90,50 @@ void token_lctx(LexContext& lctx, int debug_flags){
     size_t char_maxext = 0;
     lctx.src_index = 0;
 
-    char _c = lctx.cpeek();
-
     bool dmsg = (debug_flags & 0b0001) != 0;
 
-    #define next _c = lctx.cnext(); if(dmsg){cout<<"\nOn Character " + vischar(_c);}
+    #define next c0 = lctx.cnext(); if(dmsg) {cout<<"\nOn Character " + vischar(c0);}
 
-    // Impossible under normal circumstances to get more tokens than there are characters in the source + 1 (EOF t)
-
-    #define lencheck if (lctx.tok_size + 1 > lctx.src_size){lctx.throw_err("Faulty Tokenstream size.");}
-
-    unordered_map<string, string*> lexeme_map;
-
+    unordered_map<string_view, string*> lexeme_map;
+    lexeme_map.reserve(512);
 
     while (1){
-        _c = lctx.cpeek();
-        if (dmsg){cerr << "\nConstructing from " << vischar(_c) << " at " << to_string(lctx.src_index);}
-        if (_c == '\0'){lctx.emitfc(TK_EOF); break;};
+        auto [c0, c1] = lctx.cpeek2();
+
+        if (dmsg){cerr << "\nConstructing from " << vischar(c0) << " at " << to_string(lctx.src_index);}
+        if (c0 == '\0'){lctx.emitfc(TK_EOF); break;};
 
         if (lctx.src_index + 1 <= char_maxext){
             // Tokenizer not designed to roll back on characters.
             lctx.throw_err("Reached source index " + to_string(lctx.src_index) + " multiple times!");
         }
-        
-        lencheck;
 
         char_maxext = lctx.src_index + 1;
         
-        if (isspace(_c)){
+        if (isspace(c0)){
             int skiplen = 0;
-            while (isspace(_c)){skiplen++; _c = lctx.cnext();}
+            while (isspace(c0)){skiplen++; c0 = lctx.cnext();}
             if (dmsg){cout << "\nSkipped " + to_string(skiplen) + " whitespaces.";}
             continue;
         }
 
 
         // Comment handling // or //()
-        if (_c == '/' && lctx.cpeek(1) == '/'){
+        if (c0 == '/' && c1 == '/'){
             char term = lctx.cpeek(2) == '(' ? ')' : '\n';
             lctx.src_index+=2; // consumes / and /
 
-            while (_c != term && _c != '\0'){_c = lctx.cnext();}
-            if (_c == term){next;}
+            while (c0 != term && c0 != '\0'){c0 = lctx.cnext();}
+            if (c0 == term){next;}
             continue;
         }
 
         // Number Literals
-        if (isdigit(_c) || (_c == '.' && isdigit(lctx.cpeek(1)))){
+        if (isdigit(c0) || (c0 == '.' && isdigit(c1))){
             string lexm;
-            while (isalnum(_c) || _c == '.' || _c == '_' || (_c == '-' && (lexm.back() == 'e' || lexm.back() == 'E'))){
-                if (_c != '_'){lexm.push_back(_c);}
+            char prev = '\0';
+            while (isalnum(c0) || c0 == '.' || c0 == '_' || (c0 == '-' && (prev == 'e' || prev == 'E'))){
+                if (c0 != '_'){lexm.push_back(c0); prev = c0;}
                 next;
             }
             if (lexm.size() < 1){
@@ -198,7 +192,7 @@ void token_lctx(LexContext& lctx, int debug_flags){
         }
 
         // Punctuation handling
-        TokCode punctcode = match_punct(_c, lctx.cpeek(1), lctx);
+        TokCode punctcode = match_punct(c0, c1, lctx);
         if (punctcode != TK_EMPTY){
             if (dmsg){cout << "\nMatched Punctuation!";}
             lctx.cnext();
@@ -207,13 +201,13 @@ void token_lctx(LexContext& lctx, int debug_flags){
         }
 
         // String Literals
-        if (_c == '"' || _c == '\''){
-            char term = _c;
+        if (c0 == '"' || c0 == '\''){
+            char term = c0;
 
             next;
             string lexm;
-            while (_c != '\0' && _c != term){lexm.push_back(_c); next;}
-            if (_c == '\0'){throw runtime_error("Unterminated string literal at line " + to_string(lctx.line));}
+            while (c0 != '\0' && c0 != term){lexm.push_back(c0); next;}
+            if (c0 == '\0'){throw runtime_error("Unterminated string literal at line " + to_string(lctx.line));}
 
             lctx.cnext(); // consumes final quote
             auto strtok = Token{TK_LIT_STR, lctx.line};
@@ -227,12 +221,12 @@ void token_lctx(LexContext& lctx, int debug_flags){
         }
 
         // Identifiers
-        if (isalpha(_c) || _c == '_'){
+        if (isalpha(c0) || c0 == '_'){
             string lexm;
 
-            while (isalnum(_c) || _c == '_'){
-                lexm.push_back(_c);
-                _c = lctx.cnext();
+            while (isalnum(c0) || c0 == '_'){
+                lexm.push_back(c0);
+                c0 = lctx.cnext();
             };
 
             if (lexm == "false" || lexm == "true"){
@@ -254,6 +248,7 @@ void token_lctx(LexContext& lctx, int debug_flags){
 
             lctx.emit(idtok); continue;
         }
-        lctx.throw_err("Unmatched character " + vischar(_c) + " at " + to_string(lctx.src_index));  
+
+        lctx.throw_err("Unmatched character " + vischar(c0) + " at " + to_string(lctx.src_index));  
     };
 }
