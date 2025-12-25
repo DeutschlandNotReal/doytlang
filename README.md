@@ -1,1 +1,1 @@
-doytlang discord: https://discord.gg/DaG8JmD6E2
+Who doytin it rn
