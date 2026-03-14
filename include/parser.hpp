@@ -3,12 +3,7 @@
 #define debug true
 
 #include "dlex.hpp"
-
-
-#include <vector>
-#include <string>
-
-using namespace std;
+#include "arena.hpp"
 
 // Operations, etc.
 enum NodeGroup {
@@ -17,7 +12,8 @@ enum NodeGroup {
     _member,
     _expression,
     _operation,
-    _atom
+    _atom,
+    _uninitialised
 };
 
 // addition, sub, etc.
@@ -43,114 +39,32 @@ enum NodePayload {
 };
 
 struct ASTNode {
-    vector<ASTNode*> children;
+    std::vector<ASTNode*, ArenaAllocator<ASTNode*>> children;
     ASTNode* parent;
 
     NodeGroup group;
     NodePayload payload_type;
 
-    TokPl payload;
+    dTPayload payload;
 
-    ~ASTNode() {
-        for (ASTNode* child : children) {
-            delete child;
-        }
-    };
+    ~ASTNode();
     
-    ASTNode(ASTNode* parent, NodeGroup group, NodePayload payload_type, TokPl payload) {
-        children = vector<ASTNode*>();
-        parent = parent;
-        group = group;
-        payload_type = payload_type;
-        payload = payload;
-    };
+    ASTNode(ASTNode* parent, NodeGroup group, NodePayload payload_type, dTPayload payload);
 };
 
-bool is_atom(Token& token) {
-    return 
-        token.type == TK_LIT_FLOAT ||
-        token.type == TK_LIT_DOUBLE ||
-        token.type == TK_LIT_BOOL ||
-        token.type == TK_LIT_STR ||
-        token.type == TK_LIT_INT ||
-        token.type == TK_IDENT;
-}
+class Parser {
+private:
+    LexOutput lex;
+    Arena arena;
+    ArenaAllocator<ASTNode*> allocator;
 
-bool get_op_payload(Token& op) {
-    switch (op.type) {
-        case TK_PLUS:  return NodePayload::_add;
-        case TK_MINUS: return NodePayload::_sub;
-        case TK_STAR:  return NodePayload::_mul;
-        case TK_SLASH: return NodePayload::_div;
-        case TK_PERC:  return NodePayload::_mod;
-        case TK_STAR2: return NodePayload::_pow;
-        default: return NodePayload::_error;
-    }
-}
+    ASTNode* alloc_node();
+    ASTNode* nud(Token op);
+    ASTNode* led(Token op, ASTNode* left);
 
-// parse_expression should probably handle garbage tokens
-pair<float,float> binding_power(Token& op) {
-    switch(op.type) {
-        case TK_PLUS:
-        case TK_MINUS: return {1.0, 1.1};
-        case TK_PERC:
-        case TK_STAR:
-        case TK_SLASH: return {2.0, 2};
-    }
-} 
+public:    
+    ASTNode* parse_expression(float min_bp = 0);
 
-ASTNode* parse_expression(LexContext lex, float min_bp = 0) {
-   #define peek       lex._t;
-   #define consume    lex.step();
-   #define ahead      lex._th;
-   #define tok_oob(t) t.type == TK_INVALID || t.type == TK_EOF
+    Parser(LexOutput lex_output);
+};
 
-    Token lhs_token = peek;
-    if (lhs_token.type == TK_INVALID) {
-        throw runtime_error("Tried to parse past EOF");
-    }
-    
-    if (!is_atom(lhs_token)) {
-        throw runtime_error("Expected float literal when parsing expression");
-    }
-
-    ASTNode* lhs = new ASTNode(
-        nullptr,
-        NodeGroup::_atom,
-        NodePayload::_litfloat,
-        lhs_token.payload
-    );
-
-    while (1) {
-        Token op = peek;
-        if (op.type == TK_SEMI) {
-            break;
-        }
-        if (tok_oob(op)) {
-            throw runtime_error("Reached EOF while parsing expression");
-        }
-        if (get_op_payload(op) == NodePayload::_error) {
-            throw runtime_error("Expected valid operator while parsing expression");
-        }
-
-        consume;
-
-        auto [lbp, rbp] = binding_power(op);
-        if (lbp < min_bp) {
-            break;
-        }
-        ASTNode* rhs = parse_expression(lex, rbp); // scary recursion but should be fine cuz its only for expressions
-        lhs = new ASTNode(
-            nullptr,
-            NodeGroup::_operation,
-            get_op_payload(op),
-            lhs_token.payload
-            {lhs, rhs}
-        );
-    }
-    return lhs;
-}
-
-ASTNode* parse_whole(LexContext lex) {
-
-}
