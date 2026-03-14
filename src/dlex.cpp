@@ -1,89 +1,59 @@
 #include "../include/dlex.hpp"
-#include <optional>
 #include <iostream>
 #include <string>
-#include <unordered_map>
 
-using namespace std;
+dTCode punc_match( char C0, char C1, const char*& cur ){
+    using enum dTCode;
 
+    #define monocase(e, t) case e: { ++cur; return t; }
+    // feel free to quickly do the other ops, im tryna figure out why strtof is being goth
+    switch (C0) {
+        monocase('+', plusT);
+        monocase('-', minusT);
+        monocase('/', slashT);
+        monocase('*', starT);
 
-inline TokCode match_punct(char a, char b, LexContext& context){
-    #define retnext(t) context.src_index++; return t;
+        default: return invT;
+    }
+}
 
-    switch(a){
-        case '{': return TK_LBRACE; case '}': return TK_RBRACE;
-        case '[': return TK_LBRACK; case ']': return TK_RBRACK;
-        case '(': return TK_LPAREN; case ')': return TK_RPAREN;
+LexOutput tokenize( std::string src ) {
+    char* cur = src.data(); // .data() gives us a non-const ptr
+    const char* end = cur + src.size();
+    std::vector<Token> stream; // vector for now for simplicity
 
-        case '+': return TK_PLUS; case '-': return TK_MINUS; case '/': return TK_SLASH;
-        case '%': return TK_PERC; case '#': return TK_HASH; case '?': return TK_QWE;
-        case '.': return TK_DOT; case ',': return TK_COMMA; case ';': return TK_SEMI; case ':': return TK_COLON;
-        case '^': return TK_HAT; case '~': return TK_TILDE;
+    #define next { c = * (cur++); goto start; }
+    #define step { cur++; c = c1; }
+    #define update { c = * cur; goto start; }
 
-        case '&':switch(b){
-            case '&': retnext (TK_AND2); default: return TK_AND;
-        };
-        case '|':switch(b){
-            case '|': retnext (TK_PIPE2); default: return TK_PIPE;
-        };
-        case '*':switch(b){
-            case '*': retnext (TK_STAR2); default: return TK_STAR;
-        };
-        case '>':switch(b){
-            case '>': retnext (TK_GT2); case '=': retnext (TK_GTEQ); default: return TK_GT;
-        };
-        case '<':switch(b){
-            case '<': retnext (TK_LT2); case '=': retnext (TK_LTEQ); default: return TK_LT;
-        };
-        case '=':switch(b){
-            case '=': retnext (TK_EQ2); default: return TK_EQ;
-        };
-        case '!':switch(b){
-            case '=': retnext (TK_NEQ); default: return TK_EXC;
-        };
-        default: return TK_EMPTY;
-    };
-};
+    char c = *cur;
 
-static inline optional<float> interp_flt(string lexm){
-    char* end; const char* cstr = lexm.c_str();
+    start:
+        // Whitespace Skip
+        if (isspace(c)) next;
+        
+        char c1 = *(cur + 1);
+        if (c == '/') {
+            // Comment until next line break
+            if (c1 == '/') { 
+                while (c != '\n' && c != '\0') { c = * (cur++); }
+                goto start;
+            }    
+            // Comment until next */ 
+            if (c1 == '*') {
+                while (c != '\0') { char cn = * (cur++); if (c == '*' && cn == '/') { cur++; break; }}
+                update
+            }
+        }
 
-    float val = strtof(cstr, &end);
-    
-    if (end == cstr || *end != '\0'){
-        return nullopt;
-    }; return val;
-};
-
-static inline optional<double> interp_dub(string lexm){
-    char* end; const char* cstr = lexm.c_str();
-
-    double val = strtod(cstr, &end);
-    
-    if (end == cstr || *end != '\0'){
-        return nullopt;
-    }; return val;
-};
-
-static inline optional<long long> interp_llong(string lexm){
-    char* end; const char* cstr = lexm.c_str();
-
-    long long val = strtoll(cstr, &end, 0);
-    
-    if (end == cstr || *end != '\0'){
-        return nullopt;
-    }; return val;
-};
-
-static string vischar(char _c){
-    switch(_c){
-        case ' ': return "<space>";
-        case '\n': return "<newline>";
-        case '\t': return "<tab>";
-        default: return string(1, _c);
-    };
-};
-
+        if (isdigit(c) || (isdigit(c1) && c == '.')) {
+            float val = strtof(cur, &cur);
+            stream.emplace_back(Token{dTCode::numT, {.flt = val}});
+            update
+        }
+        if (cur < end) { c = * (cur++); goto start; }
+} 
+/*
 void token_lctx(LexContext& lctx, int debug_flags){
     // debug flags: 0b[][][][show_msg]
 
@@ -252,3 +222,5 @@ void token_lctx(LexContext& lctx, int debug_flags){
         lctx.throw_err("Unmatched character " + vischar(c0) + " at " + to_string(lctx.src_index));  
     };
 }
+
+*/
