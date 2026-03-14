@@ -1,6 +1,6 @@
 #include "../include/dlex.hpp"
-#include <iostream>
 #include <string>
+
 
 dTCode punc_match( char C0, char C1, const char*& cur ){
     using enum dTCode;
@@ -48,13 +48,30 @@ LexOutput tokenize( std::string src ) {
 
         if (isdigit(c) || (isdigit(c1) && c == '.')) {
             float val = strtof(cur, &cur);
-            stream.emplace_back(Token{dTCode::numT, {.flt = val}});
+            stream.emplace_back(Token{dTCode::numT, val});
             update
         }
         if (cur < end) { c = * (cur++); goto start; }
+    
+    
+    LexOutput output = LexOutput(stream);
+    return output;
 } 
+
+bool ::Token::valid() const {
+    return  this->type != dTCode::unkT
+        &&  this->type != dTCode::invT
+        &&  this->type != dTCode::eofT;
+}
+
+LexOutput::LexOutput(std::vector<Token> stream)
+    :   literals(Arena::create(1024)),
+        stream(stream),
+        cursor(0)
+{}
+
 /*
-void token_lctx(LexContext& lctx, int debug_flags){
+void token_lctx(LessxContext& lctx, int debug_flags){
     // debug flags: 0b[][][][show_msg]
 
     size_t char_maxext = 0;

@@ -1,65 +1,41 @@
-#include "parser.hpp"
+#include "../include/parser.hpp"
 
-#include <vector>
-#include <string>
-// weird error in dlex.cpp, using enum doesnt work?!
-// amazing name
-// typedef  ASTNodeChildrenVec; k this chudded thing keeps erroring
+#include <stdexcept>
 
-struct ASTNode {
-    std::vector<ASTNode*, ArenaAllocator<ASTNode*>> children;
-    ASTNode* parent;
-
-    NodeGroup group;
-    NodePayload payload_type;
-
-    dTPayload payload;
-
-    ~ASTNode() {
-        for (ASTNode* child : children) {
-            delete child;
-        }
-    };
-    
-    ASTNode(ASTNode* parent, NodeGroup group, NodePayload payload_type, dTPayload payload, ArenaAllocator<ASTNode*> allocator)
-        :   children(allocator),  // initialize member vector with your allocator
-            parent(parent),
-            group(group),
-            payload_type(payload_type),
-            payload(payload)
-    {}; 
-};
-
-// bool is_atom(Token token) {
-//     return 
-//         token.type == TK_LIT_FLOAT ||
-//         token.type == TK_LIT_DOUBLE ||
-//         token.type == TK_LIT_BOOL ||
-//         token.type == TK_LIT_STR ||
-//         token.type == TK_LIT_INT ||
-//         token.type == TK_IDENT;
-// }
-
-NodePayload get_op_payload(Token& op) {
+BinaryExprPayload get_bin_op_payload(Token& op) {
     switch (op.type) {
-        case dTCode::plusT:  return NodePayload::_add;
-        case dTCode::minusT: return NodePayload::_sub;
-        case dTCode::starT:  return NodePayload::_mul;
-        case dTCode::slashT: return NodePayload::_div;
-        default: return NodePayload::_error;
+        case dTCode::plusT:  return BinaryExprPayload::_add;
+        case dTCode::minusT: return BinaryExprPayload::_sub;
+        case dTCode::starT:  return BinaryExprPayload::_mul;
+        case dTCode::slashT: return BinaryExprPayload::_div;
+        default: throw std::runtime_error("Tried to get the operator payload type of sth thats not an operator");
     }
 }
 
+LiteralExprPayload get_literal_payload(Token& literal) {
+    switch (literal.type) {
+        case dTCode::numT: return LiteralExprPayload::_litfloat;
+        case dTCode::boolT: return LiteralExprPayload::_litbool;
+        case dTCode::strT: return LiteralExprPayload::_litstr;
+        default: throw std::runtime_error("Tried to get literal payload type of sth thats not a literal");
+    }
+}
+
+
+#define BP_ADD_SUB ((std::pair<float,float>){1.0, 1.1})
+#define BP_MUL_DIV ((std::pair<float,float>){2.0, 2.1})
+#define BP_NEG (5)
 // parse_expression should probably handle garbage tokens
 std::pair<float,float> binding_power(Token& op) {
     switch(op.type) {
         case dTCode::plusT:
-        case dTCode::minusT: return {1.0, 1.1};
+        case dTCode::minusT: return BP_ADD_SUB;
         case dTCode::starT:
-        case dTCode::slashT: return {2.0, 2};
-        return {0.0,0.0};
+        case dTCode::slashT: return BP_MUL_DIV;
+        default: return {0.0,0.0};
     }
-} 
+}
+
 
 bool is_literal(dTCode code) {
     return  code == dTCode::identT ||
@@ -73,58 +49,86 @@ bool is_literal(dTCode code) {
 
 
 
-ASTNode* parse_whole(LexOutput lex) {
+// Expr* parse_line(LexOutput lex) {
     
-}
+// }
 
-// value of out is the return
-ASTNode* Parser::nud(Token op) {
-    ASTNode* ret = alloc_node();
-    
+Expr* Parser::nud(Token op) {
     if ( is_literal(op.type) ) {
-        ret->payload_type = get_op_payload(op);
-        ret->payload = op.pl;
+        LiteralExpr* ret = alloc<LiteralExpr>(); 
+        ret->type = get_literal_payload(op);
+        ret->value = op.pl;
         return ret;
     }
 
     switch (op.type) {
-        case dTCode::minusT:
-            ret->payload_type = NodePayload::_neg;
-            ret->children.push_back(parse_expression(30));
-            return ret; // 0 errors in projectt!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        case dTCode::lparT: // i took a small break after the strtof ragebait
-            ASTNode* right = parse_expression(0);
+        case dTCode::minusT: {
+            UnaryExpr* ret = alloc<UnaryExpr>();
+            ret->op = UnaryExprPayload::_neg;
+            auto [_, rbp] = binding_power(op);
+            ret->operand = parse_expression(BP_NEG); // very high binding power since minus needs to bind very tightly
+
+            return ret;
+        }
+
+        case dTCode::lparT: {
+            Expr* right = parse_expression(0);
             Token expected_rparen = lex.consume();
             if (expected_rparen.type != dTCode::rparT) {
-                // TODO: ERROR
-                return;
+                throw  std::runtime_error("Expected ')' to close '('") ;
             }
             return right;
+        }
+
+        case dTCode::identT: { // stuff like `x` and `math`
+            IdentifierExpr* ident = alloc<IdentifierExpr>();
+            ident->name = std::get<std::string>(op.pl);
+        }
+
+        default:
+            throw std::runtime_error("unexpected token seen");
                 
     }
 }
 
-ASTNode* Parser::led(Token op, ASTNode* left) {
+Expr* Parser::led(Token op, Expr* left) {
+    switch (op.type) {
+        case dTCode::plusT:
+        case dTCode::minusT:
+        case dTCode::starT:
+        case dTCode::slashT: {
+            Expr* right = parse_expression(binding_power(op).second);
+            BinaryExpr* expr = alloc<BinaryExpr>();
+            expr->left = left;
+            expr->right = right;
+            expr->op = get_bin_op_payload(op);
 
+            return expr;
+        }
+        default:
+            throw std::runtime_error("Unexpected token found during parsing");
+    }
 }
 
-ASTNode* Parser::alloc_node() {
-    ASTNode node = ASTNode(nullptr, NodeGroup::_uninitialised, NodePayload::_error, (dTPayload)0, allocator);
-    return (ASTNode*) arena.alloc(sizeof(node), alignof(node));
+template <typename T>
+T* Parser::alloc() {
+    return (T*) arena.alloc(sizeof(T), alignof(T));
 }
 
-ASTNode* Parser::parse_expression(float min_bp = 0) {
-    #define peek       lex.tpeek();
-    #define consume    lex.tconsume();
-    #define ahead      lex._th;
-    #define tok_oob(t) t.type == dTCode::invalidT || t.type == dTCode::eofT
-
-    ASTNode* left = (ASTNode*)0; // please the compiler for now
+Expr* Parser::parse_expression(float min_bp) {
+    Expr* left = nud(lex.consume());
     
+    while (1) {
+        Token cur = lex.peek();
+        if (!cur.valid() || (binding_power(cur).first <= min_bp))
+            break;
+        lex.consume();
+        Expr* left = led(cur, left);
+    }
+
     return left;
 }
 
 Parser::Parser(LexOutput lex_output)
     :   lex(lex_output),
-        arena(Arena::create(1024)),
-        allocator(&arena) {}
+        arena(Arena::create(1024)) {}

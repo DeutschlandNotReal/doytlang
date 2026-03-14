@@ -1,10 +1,9 @@
 #pragma once
 #include <string>
 #include <vector>
-#include <iostream>
-#include <fstream> 
-#include <sstream>
 #include <cstdint>
+#include <variant>
+
 #include "arena.hpp"
 
 
@@ -42,13 +41,22 @@ enum class dTCode : uint_fast8_t {
 
 };
 
-union dTPayload {
-    float flt;
-};
+// union dTPayload {
+//     float flt;
+//     std::string str;
+// };
+
+using dTPayload = std::variant<
+    float,
+    std::string,
+    bool
+>;
 
 struct Token {
     dTCode type;
     dTPayload pl;
+
+    bool valid() const;
 };
 
 // Produced by lexer, used by parser
@@ -60,6 +68,8 @@ class LexOutput {
     public:
         Token peek(size_t offset = 0);
         Token consume();
+
+        LexOutput(std::vector<Token> stream);
 };
 
 LexOutput tokenize(std::string src);

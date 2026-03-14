@@ -3,3 +3,4 @@ main.exe
 build/
 cmake*
 .idea/
+.vscode
