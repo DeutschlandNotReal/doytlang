@@ -2,6 +2,9 @@
 
 #define debug true
 
+#include <stdexcept>
+#include <string>
+
 #include "dlex.hpp"
 #include "arena.hpp"
 
@@ -27,6 +30,8 @@ enum BinaryExprPayload {
     _neq, _eq, _lt, _gt, _lteq, _gteq,
     _if, _else, _func,
 
+    _idx, // a.b, a[b]
+
     _bin_error // something wrong has happened
 };
 
@@ -45,7 +50,21 @@ enum UnaryExprPayload {
     _unary_error // something wrong has happened
 };
 
-struct Expr { virtual ~Expr() = default; };
+class parser_error : public std::runtime_error {
+public:
+    parser_error(const std::string& message) 
+        : std::runtime_error(message) {}
+    
+    parser_error(const char* message) 
+        : std::runtime_error(message) {}
+};
+
+enum class ExprType { Binary, Unary, Literal, Identifier, Call };
+
+struct Expr {
+    ExprType kind;
+    virtual ~Expr() = default;
+};
 
 struct BinaryExpr : Expr {
     Expr* left;
@@ -67,19 +86,15 @@ struct IdentifierExpr : Expr {
     std::string name;
 };
 
-// struct ASTNode {
-//     std::vector<ASTNode*, ArenaAllocator<ASTNode*>> children;
-//     ASTNode* parent;
+struct CallExpr : Expr {
+    IdentifierExpr* fn;
+    std::vector<Expr*> args;
+};
 
-//     NodeGroup group;
-//     NodePayload payload_type;
+std::string AST_to_str(Expr* root, int indent = 0);
 
-//     dTPayload payload;
-
-//     ~ASTNode();
-    
-//     ASTNode(ASTNode* parent, NodeGroup group, NodePayload payload_type, dTPayload payload, ArenaAllocator<ASTNode*> allocator);
-// };
+template <typename T>
+concept DerivedFromExpr = std::is_base_of_v<Expr, T>;
 
 class Parser {
 private:
@@ -96,9 +111,11 @@ public:
     // UnaryExpr* alloc_unary_expr();
     // LiteralExpr* alloc_literal_expr();
     // IdentifierExpr* alloc_identifier_expr();
-    template <typename T>
-    T* alloc();
 
+    template <DerivedFromExpr T>
+    T* alloc_expr();
+
+    Expr* parse_statement();
     Expr* parse_expression(float min_bp = 0);
 
     Parser(LexOutput lex_output);

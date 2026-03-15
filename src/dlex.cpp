@@ -70,6 +70,16 @@ LexOutput::LexOutput(std::vector<Token> stream)
         cursor(0)
 {}
 
+Token LexOutput::consume() {
+    Token tok = stream[cursor++];
+    return tok;
+}
+
+Token LexOutput::peek(size_t offset) {
+    Token tok = stream[cursor + offset];
+    return tok;
+}
+
 /*
 void token_lctx(LessxContext& lctx, int debug_flags){
     // debug flags: 0b[][][][show_msg]
