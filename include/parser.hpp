@@ -1,5 +1,6 @@
 #pragma once
 
+#include <unordered_map>
 #define debug true
 
 #include <stdexcept>
@@ -7,17 +8,6 @@
 
 #include "dlex.hpp"
 #include "arena.hpp"
-
-// Operations, etc.
-enum NodeGroup {
-    _assignment,
-    _paranthesis,
-    _member,
-    _expression,
-    _operation,
-    _atom,
-    _uninitialised
-};
 
 enum BinaryExprPayload {
     // Binary Operations
@@ -93,11 +83,43 @@ struct CallExpr : Expr {
 
 std::string AST_to_str(Expr* root, int indent = 0);
 
+enum class TypeKind {
+    _float, _bool, _string,
+    _struct, _array, _function,
+    _pointer // ? 
+};
+
+struct StructField; // forward decl.
+
+struct Type {
+    TypeKind kind;
+    union {
+        struct {
+            std::vector<StructField>* fields;          
+        } struct_info;
+        struct {
+            Type* element_type;
+            size_t size;
+        } array_info;
+        struct {
+            Type* target_type;
+        } ptr_info;
+    };
+};
+
+struct StructField {
+    std::string name;
+    Type type;
+};
+
 template <typename T>
 concept DerivedFromExpr = std::is_base_of_v<Expr, T>;
 
 class Parser {
 private:
+    std::unordered_map<std::string, Type> type_registry; // holds all the types that have been seen so far
+    // also holds all the primitives like float at the beginning
+
     LexOutput lex;
     Arena arena;
 
@@ -117,6 +139,8 @@ public:
 
     Expr* parse_statement();
     Expr* parse_expression(float min_bp = 0);
+
+    Expr* parse_whole();
 
     Parser(LexOutput lex_output);
 };

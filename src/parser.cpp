@@ -290,9 +290,22 @@ Expr* Parser::parse_expression(float min_bp) {
 }
 
 Expr* Parser::parse_statement() {
-    
+    Token first_tok = lex.consume();
+    if (first_tok.type == dTCode::identT) { // variable assignemnt? (starts with type possibly)
+        std::string name = std::get<std::string>(first_tok.pl);
+        if (type_registry.contains(name)) {
+            Type t = type_registry.at(name);
+
+        }
+    }
 }
 
 Parser::Parser(LexOutput lex_output)
     :   lex(lex_output),
-        arena(Arena::create(1024)) {}
+        arena(Arena::create(1024)),
+        type_registry({
+            { "float" , Type{TypeKind::_float } },
+            { "string", Type{TypeKind::_string} },
+            { "bool"  , Type{TypeKind::_bool  } },
+        })
+        {}
