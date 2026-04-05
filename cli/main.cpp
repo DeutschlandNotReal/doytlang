@@ -1,11 +1,4 @@
-#include <fstream>
-#include <sstream>
-#include <string>
-#include <iostream>
-
-#include "../include/dlex.hpp"
-// #include "../include/parser.hpp"
-
+/*
 std::string read_file(const std::string& filename) {
     std::ifstream file(filename, std::ios::in);
     if (!file) {
@@ -14,7 +7,7 @@ std::string read_file(const std::string& filename) {
 
     std::stringstream buffer;
     buffer << file.rdbuf();  // read entire contents into stringstream
-    return buffer.str();     // convert to std::string
+    return buffer.str();
 }
 
 int main() {
@@ -33,4 +26,4 @@ int main() {
     LexOutput lexed = tokenize(contents);
     // Expr* ast_root = parse_file(lexed);
     // interpet idk
-}
+*/

@@ -1,6 +1,6 @@
-#include "../include/dlex.hpp"
+/*/
+#include <dlex.hpp>
 #include <string>
-
 
 dTCode punc_match( char C0, char C1, const char*& cur ){
     using enum dTCode;
@@ -17,7 +17,7 @@ dTCode punc_match( char C0, char C1, const char*& cur ){
     }
 }
 
-LexOutput tokenize( std::string src ) {
+LexOutput tokenize( const char** src, int src_count ) {
     char* cur = src.data(); // .data() gives us a non-const ptr
     const char* end = cur + src.size();
     std::vector<Token> stream; // vector for now for simplicity
@@ -39,7 +39,7 @@ LexOutput tokenize( std::string src ) {
                 while (c != '\n' && c != '\0') { c = * (cur++); }
                 goto start;
             }    
-            // Comment until next */ 
+            // Comment until next 
             if (c1 == '*') {
                 while (c != '\0') { char cn = * (cur++); if (c == '*' && cn == '/') { cur++; break; }}
                 update
@@ -80,7 +80,6 @@ Token LexOutput::peek(size_t offset) {
     return tok;
 }
 
-/*
 void token_lctx(LessxContext& lctx, int debug_flags){
     // debug flags: 0b[][][][show_msg]
 

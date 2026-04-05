@@ -1,23 +1,9 @@
 {
-  "configurations": [
-    {
-      "name": "Win32",
-      "includePath": [
-        "${workspaceFolder}/include",
-        "${workspaceFolder}/src",
-        "${workspaceFolder}/cli",
-        "${workspaceFolder}/**",
-        "C:/msys64/mingw64/include/c++/15.2.0",
-        "C:/msys64/mingw64/include/c++/15.2.0/x86_64-w64-mingw32",
-        "C:/msys64/mingw64/include",
-        "${workspaceFolder}/VM"
-      ],
-      "defines": [],
-      "compilerPath": "C:/msys64/mingw64/bin/g++.exe",
-      "cStandard": "c17",
-      "cppStandard": "c++20",
-      "intelliSenseMode": "windows-gcc-x64"
-    }
-  ],
-  "version": 4
+    "configurations": [
+        {
+            "name": "Win32",
+            "configurationProvider": "ms-vscode.cmake-tools"
+        }
+    ],
+    "version": 4
 }
