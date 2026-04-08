@@ -34,6 +34,12 @@ class RawPool {
     }
 
     public:
+        PoolBlock operator[](short i) {
+            return blocks[i];
+        }
+
+        short block_count() const noexcept { return count; }
+
         RawPool(): blocks(new PoolBlock[1]) {
             blocks[0] = PoolBlock(DEFAULT_POOL_CAPACITY);
         }
@@ -48,7 +54,7 @@ class RawPool {
         }
 
         template <typename T> T* append(const T& item) {
-            return new (*_top<T>()) T(item);
+            return new (_top<T>()) T(item);
         }
 };
 
@@ -59,7 +65,26 @@ template <typename T> class Pool {
         
         PoolBlock() = default;
         PoolBlock(const unsigned int size): buf(new T[size]), len(size) {}
-        unsigned int available() const { return len - cur; }
+        unsigned int available() const noexcept { return len - cur; }
+    };
+
+    class PoolIterator {
+        // only use if done with making pool
+        PoolBlock* block; short block_index, block_count;
+        int index, gap;
+        
+        public:
+            T peek() const noexcept { return block->buf[index]; }
+            T consume() noexcept {
+              T current = block->buf[index++];
+              if (index == gap && block_index+1 < block_count) {
+                block++;
+                index = 0;
+                gap = block->cur;
+                ++block_index;
+              }
+              return current;
+            }
     };
 
     PoolBlock* blocks;
@@ -67,20 +92,26 @@ template <typename T> class Pool {
 
     // unlike RawPool, not likely to see discarded space here
     T* _top() {
-        PoolBlock& top = blocks[count-1];
-        if (!top.available()) {
+        if (!blocks[count-1].available()) {
             PoolBlock* old_blocks = blocks;
             capacity <<= 1;
             blocks = new PoolBlock[capacity];
             for (int i = 0; i < count; i++) blocks[i] = old_blocks[i];
             blocks[count++] = PoolBlock(DEFAULT_POOL_CAPACITY);
-            top = blocks[count-1];
             delete[] old_blocks;
         }
+
+        PoolBlock& top = blocks[count-1];
         return top.buf + top.cur++;
     }
 
     public:
+        PoolBlock operator[](short i) {
+            return blocks[i];
+        }
+
+        short block_count() const noexcept { return count; }
+
         Pool(): blocks(new PoolBlock[1]) { blocks[0] = PoolBlock(DEFAULT_POOL_CAPACITY); }
 
         ~Pool() {
@@ -93,14 +124,6 @@ template <typename T> class Pool {
         }
 
         T* insert(const T& item) {
-            return new (*_top()) T(item);
-        }
-
-        T operator[](unsigned int i) {
-            for (int bid = 0; bid < count; bid++) {
-                auto len = blocks[bid].len;
-                if (i < len) return blocks[bid][i];
-                i -= len;
-            }
+            return new (_top()) T(item);
         }
 };

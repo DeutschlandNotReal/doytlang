@@ -1,6 +1,9 @@
 #pragma once
 
+#include "lang/dlex.hpp"
+#include <cstring>
 #include <lang/pool.hpp>
+#include <lang/view.hpp>
 
 enum class TokenCode : char {
     // Control Tokens:
@@ -12,10 +15,13 @@ enum class TokenCode : char {
     GET,      // get (analogue for #include or require())
     IF,
     ELSE,
+    WHILE,
+    BREAK,
+    CONTINUE,
         
     // Literals
     IDENTITY,    // Identity
-    NUMBER,      // Number, temporary but really just a long long (64b)
+    NUMBER,      // Number, temporary but really just a float
     STRING,      // String
     CHAR,        // Character
     BOOL,        // Boolean (true/false)
@@ -27,23 +33,57 @@ enum class TokenCode : char {
     BRACK_L, BRACK_R, // [ and ]
 
     PLUS, MINUS, STAR, SLASH, // + - * /
-    DOT, COMMA, // . ,
+    DOT, COMMA, SEMI, // . , ;
+    EXC, // !
 
     GTEQ, LTEQ, // >= <=
     EQ2, EQ,    // == =
     GT2, LT2,   // >> <<
+    GT, LT,     // > <
     NEQ,         // !=
 };
 
+class LexOutput;
+
+// pointer to char pointer so that many sources can be compiled as one
+LexOutput tokenize(const char** src, int src_count, int flags = 0);
+
 class Token {
     TokenCode tcode;
-    void* data;
+    void* data = nullptr;
+
     public:
         TokenCode code() const noexcept { return tcode; }
+        Token(): tcode(TokenCode::_EOF) {}
+        Token(TokenCode code): tcode(code) {}
+        template <typename T> Token(TokenCode code, T val): tcode(code) {
+            if (sizeof(T) > 8) data = new char[sizeof(T)];
+            
+            std::memcpy(data, &val, sizeof(T));
+        }
+        
+        template <typename T> T value() {
+            T val;
+            std::memcpy(&val, (sizeof(T) > 8) ? data : &data, sizeof(T));
 
-        template<typename T> T value() = delete;
+            return val;
+        }
 };
 
 class LexOutput {
+    friend LexOutput tokenize(const char**, int, int);
+    friend int main(int, const char**);
+    RawPool pool;
+    Pool<Token> token_pool;
+    void emit(TokenCode code) {
+        token_pool.emplace(code);
+    }
 
+    template <typename T> void emit(TokenCode code, T value) {
+        token_pool.emplace(code, value);
+    }
+
+    public:
+        const Token& peek() const;
+        const Token& consume();
 };
