@@ -69,10 +69,12 @@ template <typename T> class Pool {
     };
 
     class PoolIterator {
+        friend Pool;
         // only use if done with making pool
         PoolBlock* block; short block_index, block_count;
         int index, gap;
         
+        PoolIterator(Pool pool): block(pool.blocks), block_index(0), block_count(pool.count), index(0), gap(pool.blocks->cur) {}
         public:
             T peek() const noexcept { return block->buf[index]; }
             T consume() noexcept {
@@ -85,7 +87,9 @@ template <typename T> class Pool {
               }
               return current;
             }
+            bool has_next() const noexcept { return (index < gap) && (block_index < block_count); }
     };
+    friend PoolIterator;
 
     PoolBlock* blocks;
     short count = 1, capacity = 1;
@@ -106,6 +110,7 @@ template <typename T> class Pool {
     }
 
     public:
+        PoolIterator iterator() const { return PoolIterator(*this); }
         PoolBlock operator[](short i) {
             return blocks[i];
         }

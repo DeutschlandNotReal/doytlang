@@ -1,0 +1,13 @@
+// fibonacci? fibonacci
+
+func (number) fibonacci (number index) {
+    // type infered from first instance
+    // number(0) unnecesary, just 0 would work
+    a = number(1), b = number(1);
+    for (i = 1, index) {
+        c = a + b;
+        b = a;
+        a = c;
+    }
+    return a;
+}

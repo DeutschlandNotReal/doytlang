@@ -1,6 +1,6 @@
 #pragma once
 
-#include "lang/dlex.hpp"
+#include <ostream>
 #include <cstring>
 #include <lang/pool.hpp>
 #include <lang/view.hpp>
@@ -62,12 +62,14 @@ class Token {
             std::memcpy(data, &val, sizeof(T));
         }
         
-        template <typename T> T value() {
+        template <typename T> T value() const {
             T val;
             std::memcpy(&val, (sizeof(T) > 8) ? data : &data, sizeof(T));
 
             return val;
         }
+
+        std::ostream& print(std::ostream& stream) const;
 };
 
 class LexOutput {
@@ -75,15 +77,19 @@ class LexOutput {
     friend int main(int, const char**);
     RawPool pool;
     Pool<Token> token_pool;
+    int tok_count = 0;
     void emit(TokenCode code) {
+        ++ tok_count;
         token_pool.emplace(code);
     }
 
     template <typename T> void emit(TokenCode code, T value) {
+        ++ tok_count;
         token_pool.emplace(code, value);
     }
 
     public:
+        int count() const { return tok_count; }
         const Token& peek() const;
         const Token& consume();
 };

@@ -1,7 +1,59 @@
+#include <lang/dlex.hpp>
+
 #include <cctype>
 #include <cmath>
 #include <lang/dlex.hpp>
 #include <stdexcept>
+
+#define TOKPRINT(T) case T: stream << #T; break;
+std::ostream& Token::print(std::ostream& stream) const {
+    using enum TokenCode;
+    switch (tcode) {
+        TOKPRINT(_EOF)
+        TOKPRINT(RET)
+        TOKPRINT(FUNC)
+        TOKPRINT(GET)
+        TOKPRINT(IF)
+        TOKPRINT(ELSE)
+        TOKPRINT(WHILE)
+        TOKPRINT(BREAK)
+        TOKPRINT(CONTINUE)
+        
+        case IDENTITY: stream << "Identity'" << value<TextView>().data() << "'"; break;;
+        case NUMBER: stream << "Number'" << value<float>() << "'"; break;;
+        case STRING: stream << "String'" << value<TextView>().data() << "'"; break;;
+        case CHAR: stream << "Char'" << value<char>() << "'"; break;;
+        case BOOL: stream << "Bool'" << value<bool>() << "'"; break;;
+        
+        TOKPRINT(NIL)
+        TOKPRINT(PARAN_L)
+        TOKPRINT(PARAN_R)
+        TOKPRINT(CURLY_L)
+        TOKPRINT(CURLY_R)
+        TOKPRINT(BRACK_L)
+        TOKPRINT(BRACK_R)
+        TOKPRINT(PLUS)
+        TOKPRINT(MINUS)
+        TOKPRINT(STAR)
+        TOKPRINT(SLASH)
+        TOKPRINT(DOT)
+        TOKPRINT(COMMA)
+        TOKPRINT(SEMI)
+        TOKPRINT(EXC)
+        TOKPRINT(GTEQ)
+        TOKPRINT(LTEQ)
+        TOKPRINT(EQ2)
+        TOKPRINT(LT2)
+        TOKPRINT(GT)
+        TOKPRINT(LT)
+        TOKPRINT(NEQ)
+        TOKPRINT(EQ)
+        TOKPRINT(GT2)
+        default: stream << "TOKEN" << (int)tcode;
+    }
+    return stream;
+}
+#undef TOKPRINT
 
 int int_parse(const char*& ptr) {
     int value = 0, mul = 1;

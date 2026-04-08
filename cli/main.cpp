@@ -4,6 +4,7 @@
 #include <chrono>
 
 #include <lang/dlex.hpp>
+#include <ostream>
 
 template <int Q> bool match(const char* arg, const char (&to)[Q]) {
     int len = 0;
@@ -66,6 +67,14 @@ int main(int count, const char** args) {
         "Took " << ms_taken << " ms ("
         << (ms_taken / src_index) << " ms/file, "
         << (char_count / ms_taken) << " char/ms)\n";
+    }
+
+    if (flags & F_TOKPRINT) {
+        std::cout << "Parsed " << lexout.count() << " tokens\n";
+        auto tok_iter = lexout.token_pool.iterator();
+        while (tok_iter.has_next()) {
+            tok_iter.consume().print(std::cout) << ", ";
+        }
     }
     
     return 0;
