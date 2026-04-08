@@ -1,26 +1,17 @@
 cmake_minimum_required(VERSION 3.22)
 project(doytlang)
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-# Explicitly list your source files
-add_library(doytlang SHARED
-    src/dlex.cpp
-    src/parser.cpp
+include_directories(
+    ${CMAKE_SOURCE_DIR}/include
 )
 
-target_include_directories(doytlang
-    PUBLIC include
+file(GLOB_RECURSE src
+    ${CMAKE_SOURCE_DIR}/src/*.cpp
+    ${CMAKE_SOURCE_DIR}/cli/*.cpp
 )
 
-
-
-set_target_properties(doytlang PROPERTIES POSITION_INDEPENDENT_CODE ON)
-
-add_executable(cli src/main.cpp)
-target_link_libraries(cli PRIVATE doytlang)
-
-install(TARGETS cli RUNTIME DESTINATION bin)
-install(DIRECTORY include/ DESTINATION include)
+add_executable(doytlang ${src})

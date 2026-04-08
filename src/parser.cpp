@@ -1,32 +1,35 @@
+/*
+
 #include "../include/parser.hpp"
 #include "dlex.hpp"
 
 std::string binary_op_to_string(BinaryExprPayload op) {
+    using enum BinaryExprPayload;
     switch (op) {
-        case BinaryExprPayload::_add:    return "add";
-        case BinaryExprPayload::_sub:    return "subtract";
-        case BinaryExprPayload::_div:    return "divide";
-        case BinaryExprPayload::_mul:    return "multiply";
-        case BinaryExprPayload::_mod:    return "modulo";
-        case BinaryExprPayload::_pow:    return "power";
-        case BinaryExprPayload::_log:    return "logarithm";
-        case BinaryExprPayload::_concat: return "concatenate";
-        case BinaryExprPayload::_and:    return "and";
-        case BinaryExprPayload::_or:     return "or";
-        case BinaryExprPayload::_xor:    return "xor";
-        case BinaryExprPayload::_rsh:    return "right shift";
-        case BinaryExprPayload::_lsh:    return "left shift";
-        case BinaryExprPayload::_neq:    return "not equal";
-        case BinaryExprPayload::_eq:     return "equal";
-        case BinaryExprPayload::_lt:     return "less than";
-        case BinaryExprPayload::_gt:     return "greater than";
-        case BinaryExprPayload::_lteq:   return "less than or equal";
-        case BinaryExprPayload::_gteq:   return "greater than or equal";
-        case BinaryExprPayload::_if:     return "if";
-        case BinaryExprPayload::_else:   return "else";
-        case BinaryExprPayload::_func:   return "function";
-        case BinaryExprPayload::_idx:    return "index";
-        case BinaryExprPayload::_bin_error: return "ERROR";
+        case _add:    return "add";
+        case _sub:    return "subtract";
+        case _div:    return "divide";
+        case _mul:    return "multiply";
+        case _mod:    return "modulo";
+        case _pow:    return "power";
+        case _log:    return "logarithm";
+        case _concat: return "concatenate";
+        case _and:    return "and";
+        case _or:     return "or";
+        case _xor:    return "xor";
+        case _rsh:    return "right shift";
+        case _lsh:    return "left shift";
+        case _neq:    return "not equal";
+        case _eq:     return "equal";
+        case _lt:     return "less than";
+        case _gt:     return "greater than";
+        case _lteq:   return "less than or equal";
+        case _gteq:   return "greater than or equal";
+        case _if:     return "if";
+        case _else:   return "else";
+        case _func:   return "function";
+        case _idx:    return "index";
+        case _bin_error: return "ERROR";
         default: return "UNKNOWN";
     }
 }
@@ -309,3 +312,5 @@ Parser::Parser(LexOutput lex_output)
             { "bool"  , Type{TypeKind::_bool  } },
         })
         {}
+
+        */

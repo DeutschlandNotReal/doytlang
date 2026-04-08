@@ -1,8 +1,1 @@
-test/
-main.exe
 build/
-cmake*
-.idea/
-.vscode
-.clangd
-.cache
